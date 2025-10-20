@@ -1,0 +1,30 @@
+[build]
+  command = "bun install --legacy-peer-deps && bun run build"
+  publish = "dist"
+
+[build.environment]
+  NODE_VERSION = "20"
+  VITE_API_URL = "https://cmpc-backend-production-c95a.up.railway.app/api/v1"
+  VITE_NODE_ENV = "production"
+  # Enable Netlify build logs
+  NETLIFY_BUILD_DEBUG = "true"
+  # Custom log location (if needed)
+  # LOG_LEVEL = "debug"
+  # LOG_OUTPUT = "stdout"
+  # You can add more logging-related env vars as needed
+
+# Redirects for SPA and CORS
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
+
+# Headers for CORS
+[[headers]]
+  for = "/*"
+  [headers.values]
+    Access-Control-Allow-Origin = "*"
+    Access-Control-Allow-Methods = "GET, POST, PUT, DELETE, OPTIONS"
+    Access-Control-Allow-Headers = "Content-Type, Authorization, X-Requested-With"
+    X-Frame-Options = "DENY"
+    X-XSS-Protection = "1; mode=block"
