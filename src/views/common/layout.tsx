@@ -1,11 +1,11 @@
 import { Navigate, Outlet } from 'react-router';
-import useStore from '@/store';
+import usePlanningPokerStore from '@/store';
 
 const Layout = () => {
-  const { isLoggedIn } = useStore();
+  const { currentUser } = usePlanningPokerStore();
 
-  if (!isLoggedIn) {
-    return <Navigate to='auth/login' replace />;
+  if (!currentUser) {
+    return <Navigate to='auth/register' replace />;
   }
 
   return (

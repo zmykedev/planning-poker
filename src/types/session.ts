@@ -1,31 +1,21 @@
 export interface User {
-  id: number;
-  email: string;
-  role: string;
-  firstName: string;
-  lastName: string;
-  createdAt: string;
-  updatedAt: string;
-  lastLoginAt?: string;
+  id: string;
+  name: string;
+  role: 'voter' | 'spectator';
+  vote: number | null;
 }
 
-export interface Tokens {
-  accessToken: string;
-  refreshToken: string;
-  tokenType: 'JWT';
-  expiresIn: number;
-  issuedAt: number;
-}
-
-export interface SessionMeta {
-  location?: string;
-  isActive: boolean;
-}
-
-export interface Session {
-  tokens: Tokens;
-  user: User;
-  meta: SessionMeta;
+export interface SessionState {
+  users: User[];
+  currentUser: User | null;
+  votesRevealed: boolean;
+  addUser: (user: Omit<User, 'id' | 'vote'>) => void;
+  setCurrentUser: (user: User) => void;
+  removeUser: (userId: string) => void;
+  setVote: (userId: string, vote: number) => void;
+  revealVotes: () => void;
+  resetVotes: () => void;
+  logout: () => void;
 }
 
 // Export book types

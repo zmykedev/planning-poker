@@ -1,135 +1,346 @@
 import { create } from 'zustand';
-import { persist, createJSONStorage } from 'zustand/middleware';
-import { jwtDecode } from 'jwt-decode';
-import type { StateCreator } from 'zustand';
+import { devtools, persist } from 'zustand/middleware';
 
-// Tipos para la sesión
-type SessionTokens = {
-  accessToken: string;
-  refreshToken: string;
-  tokenType: string;
-  expiresIn: number;
-  issuedAt: number;
-};
+// Tipos
+interface User {
+  id: string;
+  name: string;
+  role: 'moderator' | 'participant';
+  isOnline: boolean;
+}
 
-type SessionUser = {
-  id: number;
-  email: string;
-  role: string;
-  firstName: string;
-  lastName: string;
-  createdAt: string;
-  updatedAt: string;
-  lastLoginAt: string;
-};
+interface Vote {
+  userId: string;
+  value: string | null;
+  votedAt: number;
+}
 
-type SessionMeta = {
-  location?: string;
-  isActive: boolean;
-};
+interface Story {
+  id: string;
+  title: string;
+  description: string;
+  finalEstimate: string | null;
+  createdAt: number;
+}
 
-type Session = {
-  tokens: SessionTokens;
-  user: SessionUser;
-  meta: SessionMeta;
-};
+interface Session {
+  id: string;
+  name: string;
+  currentStoryId: string | null;
+  stories: Story[];
+  isVotingOpen: boolean;
+  votingSystem: 'fibonacci' | 'tshirt' | 'custom';
+  customValues?: string[];
+  createdAt: number;
+}
 
-type State = {
-  session: Session | null;
-  isLoggedIn: boolean;
-};
+interface PlanningPokerState {
+  // Session
+  currentSession: Session | null;
+  sessions: Session[];
 
-type Actions = {
-  clear: () => void;
-  setSession: (session: Session) => void;
-  updateUser: (user: Partial<SessionUser>) => void;
-  getAccessToken: () => string | null;
-  getRefreshToken: () => string | null;
-  getUser: () => SessionUser | null;
-  logout: () => void;
-};
+  // Users
+  currentUser: User | null;
+  participants: User[];
 
-const useStore = create<State & Actions>()(
-  persist(
-    ((set, get) => ({
-      session: null,
-      isLoggedIn: false,
+  // Votes
+  votes: Record<string, Vote>; // key: userId
 
-      setSession: (session) => {
-        set(() => ({
-          session,
-          isLoggedIn: true,
-        }));
-      },
+  // UI State
+  isConnected: boolean;
+  connectionError: string | null;
+  isLoading: boolean;
 
-      updateUser: (userUpdates) => {
-        const currentSession = get().session;
-        if (currentSession) {
-          set(() => ({
-            session: {
-              ...currentSession,
-              user: {
-                ...currentSession.user,
-                ...userUpdates,
+  // Actions - Session
+  createSession: (name: string, votingSystem: Session['votingSystem']) => void;
+  joinSession: (sessionId: string) => void;
+  leaveSession: () => void;
+  updateSession: (session: Partial<Session>) => void;
+
+  // Actions - Stories
+  addStory: (story: Omit<Story, 'id' | 'createdAt'>) => void;
+  removeStory: (storyId: string) => void;
+  updateStory: (storyId: string, updates: Partial<Story>) => void;
+  setCurrentStory: (storyId: string) => void;
+
+  // Actions - Voting
+  openVoting: () => void;
+  closeVoting: () => void;
+  submitVote: (value: string) => void;
+  clearVotes: () => void;
+  revealVotes: () => void;
+
+  // Actions - Users
+  setCurrentUser: (user: User) => void;
+  addParticipant: (user: User) => void;
+  removeParticipant: (userId: string) => void;
+  updateParticipant: (userId: string, updates: Partial<User>) => void;
+
+  // Actions - Connection
+  setConnectionStatus: (isConnected: boolean, error?: string) => void;
+  setLoading: (isLoading: boolean) => void;
+
+  // Reset
+  resetSession: () => void;
+}
+
+export const usePlanningPokerStore = create<PlanningPokerState>()(
+  devtools(
+    persist(
+      (set, get) => ({
+        // Initial State
+        currentSession: null,
+        sessions: [],
+        currentUser: null,
+        participants: [],
+        votes: {},
+        isConnected: false,
+        connectionError: null,
+        isLoading: false,
+
+        // Session Actions
+        createSession: (name, votingSystem) => {
+          const newSession: Session = {
+            id: crypto.randomUUID(),
+            name,
+            currentStoryId: null,
+            stories: [],
+            isVotingOpen: false,
+            votingSystem,
+            customValues: votingSystem === 'custom' ? ['1', '2', '3', '5', '8'] : undefined,
+            createdAt: Date.now(),
+          };
+
+          set((state) => ({
+            currentSession: newSession,
+            sessions: [...state.sessions, newSession],
+          }));
+        },
+
+        joinSession: (sessionId) => {
+          const session = get().sessions.find((s) => s.id === sessionId);
+          if (session) {
+            set({ currentSession: session });
+          }
+        },
+
+        leaveSession: () => {
+          set({
+            currentSession: null,
+            participants: [],
+            votes: {},
+          });
+        },
+
+        updateSession: (updates) => {
+          set((state) => {
+            if (!state.currentSession) return state;
+
+            const updatedSession = { ...state.currentSession, ...updates };
+            return {
+              currentSession: updatedSession,
+              sessions: state.sessions.map((s) =>
+                s.id === updatedSession.id ? updatedSession : s,
+              ),
+            };
+          });
+        },
+
+        // Story Actions
+        addStory: (storyData) => {
+          const newStory: Story = {
+            ...storyData,
+            id: crypto.randomUUID(),
+            createdAt: Date.now(),
+            finalEstimate: null,
+          };
+
+          set((state) => {
+            if (!state.currentSession) return state;
+
+            const updatedSession = {
+              ...state.currentSession,
+              stories: [...state.currentSession.stories, newStory],
+            };
+
+            return {
+              currentSession: updatedSession,
+              sessions: state.sessions.map((s) =>
+                s.id === updatedSession.id ? updatedSession : s,
+              ),
+            };
+          });
+        },
+
+        removeStory: (storyId) => {
+          set((state) => {
+            if (!state.currentSession) return state;
+
+            const updatedSession = {
+              ...state.currentSession,
+              stories: state.currentSession.stories.filter((s) => s.id !== storyId),
+              currentStoryId:
+                state.currentSession.currentStoryId === storyId
+                  ? null
+                  : state.currentSession.currentStoryId,
+            };
+
+            return {
+              currentSession: updatedSession,
+              sessions: state.sessions.map((s) =>
+                s.id === updatedSession.id ? updatedSession : s,
+              ),
+            };
+          });
+        },
+
+        updateStory: (storyId, updates) => {
+          set((state) => {
+            if (!state.currentSession) return state;
+
+            const updatedSession = {
+              ...state.currentSession,
+              stories: state.currentSession.stories.map((s) =>
+                s.id === storyId ? { ...s, ...updates } : s,
+              ),
+            };
+
+            return {
+              currentSession: updatedSession,
+              sessions: state.sessions.map((s) =>
+                s.id === updatedSession.id ? updatedSession : s,
+              ),
+            };
+          });
+        },
+
+        setCurrentStory: (storyId) => {
+          set((state) => ({
+            currentSession: state.currentSession
+              ? { ...state.currentSession, currentStoryId: storyId }
+              : null,
+            votes: {}, // Limpiar votos al cambiar de historia
+          }));
+        },
+
+        // Voting Actions
+        openVoting: () => {
+          set((state) => ({
+            currentSession: state.currentSession
+              ? { ...state.currentSession, isVotingOpen: true }
+              : null,
+            votes: {}, // Limpiar votos anteriores
+          }));
+        },
+
+        closeVoting: () => {
+          set((state) => ({
+            currentSession: state.currentSession
+              ? { ...state.currentSession, isVotingOpen: false }
+              : null,
+          }));
+        },
+
+        submitVote: (value) => {
+          const { currentUser } = get();
+          if (!currentUser) return;
+
+          set((state) => ({
+            votes: {
+              ...state.votes,
+              [currentUser.id]: {
+                userId: currentUser.id,
+                value,
+                votedAt: Date.now(),
               },
             },
           }));
-        }
-      },
+        },
 
-      getAccessToken: () => {
-        return get().session?.tokens.accessToken || null;
-      },
+        clearVotes: () => {
+          set({ votes: {} });
+        },
 
-      getRefreshToken: () => {
-        return get().session?.tokens.refreshToken || null;
-      },
+        revealVotes: () => {
+          get().closeVoting();
+        },
 
-      getUser: () => {
-        return get().session?.user || null;
-      },
+        // User Actions
+        setCurrentUser: (user) => {
+          set({ currentUser: user });
+        },
 
-      clear: () => {
-        set(() => ({
-          session: null,
-          isLoggedIn: false,
-        }));
-      },
+        addParticipant: (user) => {
+          set((state) => ({
+            participants: [...state.participants.filter((p) => p.id !== user.id), user],
+          }));
+        },
 
-      logout: () => {
-        set(() => ({
-          session: null,
-          isLoggedIn: false,
-        }));
-      },
-    })) as StateCreator<State & Actions, [], [['zustand/persist', unknown]], State & Actions>,
-    {
-      name: 'cmpc-session',
-      partialize: (state) => ({
-        session: state.session,
-        isLoggedIn: state.isLoggedIn,
+        removeParticipant: (userId) => {
+          set((state) => ({
+            participants: state.participants.filter((p) => p.id !== userId),
+            votes: Object.fromEntries(Object.entries(state.votes).filter(([id]) => id !== userId)),
+          }));
+        },
+
+        updateParticipant: (userId, updates) => {
+          set((state) => ({
+            participants: state.participants.map((p) =>
+              p.id === userId ? { ...p, ...updates } : p,
+            ),
+          }));
+        },
+
+        // Connection Actions
+        setConnectionStatus: (isConnected, error) => {
+          set({
+            isConnected,
+            connectionError: error || null,
+          });
+        },
+
+        setLoading: (isLoading) => {
+          set({ isLoading });
+        },
+
+        // Reset
+        resetSession: () => {
+          set({
+            currentSession: null,
+            participants: [],
+            votes: {},
+            isConnected: false,
+            connectionError: null,
+          });
+        },
       }),
-      onRehydrateStorage: () => (state) => {
-        const session = state?.session;
-        if (session?.tokens.accessToken) {
-          try {
-            // Verificar que el token no haya expirado
-            const decoded = jwtDecode(session.tokens.accessToken);
-            const currentTime = Date.now() / 1000;
-
-            if (decoded.exp && decoded.exp < currentTime) {
-              // Token expirado, limpiar sesión
-              state?.clear();
-            }
-          } catch {
-            // Token inválido, limpiar sesión
-            state?.clear();
-          }
-        }
+      {
+        name: 'planning-poker-storage',
+        partialize: (state) => ({
+          currentUser: state.currentUser,
+          sessions: state.sessions,
+        }),
       },
-      storage: createJSONStorage(() => localStorage),
-    },
+    ),
   ),
 );
 
-export default useStore;
+// Selectores útiles
+export const useCurrentStory = () =>
+  usePlanningPokerStore((state) => {
+    if (!state.currentSession?.currentStoryId) return null;
+    return state.currentSession.stories.find((s) => s.id === state.currentSession?.currentStoryId);
+  });
+
+export const useVoteCount = () => usePlanningPokerStore((state) => Object.keys(state.votes).length);
+
+export const useHasVoted = () =>
+  usePlanningPokerStore((state) => {
+    if (!state.currentUser) return false;
+    return state.currentUser.id in state.votes;
+  });
+
+export const useIsModerator = () =>
+  usePlanningPokerStore((state) => state.currentUser?.role === 'moderator');
+
+export default usePlanningPokerStore;
