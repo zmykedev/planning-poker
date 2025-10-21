@@ -3,8 +3,8 @@ import NotFound from '@/views/common/not-found';
 import Layout from '@/views/common/layout';
 import { routesAll } from '@/routes/routes-all';
 import { Suspense } from 'react';
-import Register from '@/pages/auth/register';
 import Main from '@/pages/Main';
+import { Register } from '@/pages/Register';
 
 export const routesApp: RouteObject[] = [
   {
@@ -17,7 +17,7 @@ export const routesApp: RouteObject[] = [
     element: <NotFound />,
   },
   {
-    path: '/auth/register',
+    path: '/register',
     element: (
       <Suspense>
         <Register />

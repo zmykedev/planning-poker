@@ -17,6 +17,3 @@ export interface SessionState {
   resetVotes: () => void;
   logout: () => void;
 }
-
-// Export book types
-export * from './book';
