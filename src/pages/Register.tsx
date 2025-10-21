@@ -15,8 +15,7 @@ const DEFAULT_DECK: CardDeck = {
 
 export const Register = () => {
   const navigate = useNavigate();
-  const { connect, createRoom, joinRoom, setCurrentUser, connected, roomId, setPersistentRoom } =
-    useWebSocketStore();
+  const { connect, createRoom, joinRoom, setCurrentUser, connected } = useWebSocketStore();
 
   const [newPlayerName, setNewPlayerName] = useState('');
   const [role, setRole] = useState<User['role']>('voter');
@@ -71,27 +70,7 @@ export const Register = () => {
 
     setError('');
     setCurrentUser(name, role);
-    setPersistentRoom(room); // Guardar sala en localStorage
     joinRoom(room, name);
-    navigate('/main');
-  };
-
-  const handleJoinLastRoom = () => {
-    const name = newPlayerName.trim();
-
-    if (!name) {
-      setError('El nombre es requerido');
-      return;
-    }
-
-    if (!roomId) {
-      setError('No hay sala anterior disponible');
-      return;
-    }
-
-    setError('');
-    setCurrentUser(name, role);
-    joinRoom(roomId, name);
     navigate('/main');
   };
 
@@ -110,7 +89,6 @@ export const Register = () => {
 
     setError('');
     setCurrentUser(name, role);
-    setPersistentRoom(roomFromUrl);
     joinRoom(roomFromUrl, name);
     navigate('/main');
   };
@@ -269,35 +247,6 @@ export const Register = () => {
                     className='w-full'
                   >
                     Unirse a Sala Compartida
-                  </Button>
-                </div>
-              </div>
-            )}
-
-            {/* Sala Anterior */}
-            {roomId && (
-              <div className='border-t pt-6'>
-                <div className='flex items-center mb-4'>
-                  <TeamOutlined className='mr-2' />
-                  <Text strong>Sala Anterior</Text>
-                </div>
-
-                <div className='space-y-4'>
-                  <Alert
-                    message={`Sala: ${roomId}`}
-                    description='Únete a la sala que usaste anteriormente'
-                    type='success'
-                    showIcon
-                  />
-
-                  <Button
-                    type='default'
-                    size='large'
-                    onClick={handleJoinLastRoom}
-                    disabled={!connected}
-                    className='w-full'
-                  >
-                    Unirse a Sala Anterior
                   </Button>
                 </div>
               </div>
