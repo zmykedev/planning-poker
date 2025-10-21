@@ -1,7 +1,14 @@
 import { create } from 'zustand';
 import type { User, CardDeck } from '@/types/session';
 
-const WS_URL = 'ws://planning-poker-backend-production-98d3.up.railway.app';
+// Detectar automáticamente si usar ws o wss basado en el protocolo de la página
+const getWebSocketURL = () => {
+  const isSecure = window.location.protocol === 'https:';
+  const protocol = isSecure ? 'wss:' : 'ws:';
+  return `${protocol}//planning-poker-backend-production-98d3.up.railway.app`;
+};
+
+const WS_URL = getWebSocketURL();
 
 interface WebSocketStore {
   // Estado
@@ -34,77 +41,99 @@ export const useWebSocketStore = create<WebSocketStore>((set, get) => ({
   cardDeck: null,
 
   connect: () => {
-    const socket = new WebSocket(WS_URL);
+    try {
+      console.log('Conectando a WebSocket:', WS_URL);
+      const socket = new WebSocket(WS_URL);
 
-    socket.onopen = () => {
-      set({ socket, connected: true });
-      console.log('WebSocket conectado');
-    };
+      socket.onopen = () => {
+        set({ socket, connected: true });
+        console.log('WebSocket conectado');
+      };
 
-    socket.onmessage = (event) => {
-      const data = JSON.parse(event.data);
+      socket.onmessage = (event) => {
+        try {
+          const data = JSON.parse(event.data);
 
-      switch (data.type) {
-        case 'room:created':
-        case 'room:joined':
-          set({
-            roomId: data.roomId,
-            players: data.users || [],
-            revealed: data.revealed || false, // Asegurar que revealed sea boolean
-            cardDeck: data.cardDeck,
-          });
-          // Actualizar el currentUser con la información del servidor
-          const { currentUser } = get();
-          if (currentUser && data.users) {
-            const serverUser = data.users.find((user: User) => user.name === currentUser.name);
-            if (serverUser) {
-              set({ currentUser: serverUser });
+          switch (data.type) {
+            case 'room:created':
+            case 'room:joined': {
+              set({
+                roomId: data.roomId,
+                players: data.users || [],
+                revealed: data.revealed || false, // Asegurar que revealed sea boolean
+                cardDeck: data.cardDeck,
+              });
+              // Actualizar el currentUser con la información del servidor
+              const { currentUser } = get();
+              if (currentUser && data.users) {
+                const serverUser = data.users.find((user: User) => user.name === currentUser.name);
+                if (serverUser) {
+                  set({ currentUser: serverUser });
+                }
+              }
+              break;
             }
-          }
-          break;
 
-        case 'room:updated':
-          set({
-            players: data.users,
-            revealed: data.revealed || false, // Asegurar que revealed sea boolean
-          });
-          // Actualizar el currentUser con la información del servidor
-          const { currentUser: currentUserUpdated } = get();
-          if (currentUserUpdated && data.users) {
-            const serverUser = data.users.find((user: User) => user.name === currentUserUpdated.name);
-            if (serverUser) {
-              set({ currentUser: serverUser });
+            case 'room:updated': {
+              set({
+                players: data.users,
+                revealed: data.revealed || false, // Asegurar que revealed sea boolean
+              });
+              // Actualizar el currentUser con la información del servidor
+              const { currentUser: currentUserUpdated } = get();
+              if (currentUserUpdated && data.users) {
+                const serverUser = data.users.find(
+                  (user: User) => user.name === currentUserUpdated.name,
+                );
+                if (serverUser) {
+                  set({ currentUser: serverUser });
+                }
+              }
+              break;
             }
+
+            case 'room:revealed':
+              set({ revealed: true });
+              break;
+
+            case 'room:reset': {
+              set({ revealed: false });
+              // Resetear el voto del usuario actual
+              const { currentUser: currentUserReset } = get();
+              if (currentUserReset) {
+                set({
+                  currentUser: { ...currentUserReset, vote: null },
+                });
+              }
+              break;
+            }
+
+            case 'room:error':
+              console.error('Error de sala:', data.message);
+              break;
           }
-          break;
+        } catch (error) {
+          console.error('Error parsing WebSocket message:', error);
+        }
+      };
 
-        case 'room:revealed':
-          set({ revealed: true });
-          break;
+      socket.onerror = (error) => {
+        console.error('WebSocket error:', error);
+        set({ connected: false });
+      };
 
-        case 'room:reset':
-          set({ revealed: false });
-          // Resetear el voto del usuario actual
-          const { currentUser: currentUserReset } = get();
-          if (currentUserReset) {
-            set({
-              currentUser: { ...currentUserReset, vote: null }
-            });
-          }
-          break;
-
-        case 'room:error':
-          console.error('Error de sala:', data.message);
-          break;
-      }
-    };
-
-    socket.onclose = () => {
-      set({ socket: null, connected: false });
-      console.log('WebSocket desconectado');
+      socket.onclose = () => {
+        set({ socket: null, connected: false });
+        console.log('WebSocket desconectado');
+        // Reintentar conexión después de 5 segundos
+        setTimeout(() => get().connect(), 5000);
+      };
+    } catch (error) {
+      console.error('Error creating WebSocket connection:', error);
+      set({ connected: false });
       // Reintentar conexión después de 5 segundos
       setTimeout(() => get().connect(), 5000);
-    };
+    }
   },
 
   disconnect: () => {
@@ -128,7 +157,7 @@ export const useWebSocketStore = create<WebSocketStore>((set, get) => ({
       userName,
       cardDeck,
     };
-    
+
     socket.send(JSON.stringify(message));
 
     // Fallback: Si no recibimos respuesta del servidor en 3 segundos, crear la sala localmente
@@ -137,7 +166,7 @@ export const useWebSocketStore = create<WebSocketStore>((set, get) => ({
       if (!currentRoomId) {
         const roomId = Math.random().toString(36).substr(2, 9).toUpperCase();
         const currentUser = get().currentUser;
-        
+
         if (currentUser) {
           set({
             roomId,
@@ -162,7 +191,7 @@ export const useWebSocketStore = create<WebSocketStore>((set, get) => ({
       roomId,
       userName,
     };
-    
+
     socket.send(JSON.stringify(message));
 
     // Fallback: Si no recibimos respuesta del servidor en 3 segundos, crear la sala localmente
@@ -170,7 +199,7 @@ export const useWebSocketStore = create<WebSocketStore>((set, get) => ({
       const { roomId: currentRoomId } = get();
       if (!currentRoomId) {
         const currentUser = get().currentUser;
-        
+
         if (currentUser) {
           // Usar un mazo por defecto si no tenemos uno
           const defaultDeck = {
@@ -178,7 +207,7 @@ export const useWebSocketStore = create<WebSocketStore>((set, get) => ({
             name: 'Fibonacci',
             values: [0, 1, 2, 3, 5, 8, 13, 21, 34, 55, 89, '?'],
           };
-          
+
           set({
             roomId,
             players: [currentUser],
@@ -197,14 +226,13 @@ export const useWebSocketStore = create<WebSocketStore>((set, get) => ({
       return;
     }
 
-
     // Actualizar el voto localmente inmediatamente para mejor UX
     const updatedUser = { ...currentUser, vote: value };
     set({ currentUser: updatedUser });
 
     // Actualizar también en la lista de players
-    const updatedPlayers = players.map(player => 
-      player.id === currentUser.id ? updatedUser : player
+    const updatedPlayers = players.map((player) =>
+      player.id === currentUser.id ? updatedUser : player,
     );
     set({ players: updatedPlayers });
 
@@ -221,7 +249,7 @@ export const useWebSocketStore = create<WebSocketStore>((set, get) => ({
 
   reveal: () => {
     const { socket } = get();
-    
+
     // Actualizar localmente
     set({ revealed: true });
 
@@ -237,14 +265,14 @@ export const useWebSocketStore = create<WebSocketStore>((set, get) => ({
 
   reset: () => {
     const { socket, currentUser, players } = get();
-    
+
     // Actualizar localmente
     set({ revealed: false });
-    
+
     // Resetear votos de todos los players
-    const resetPlayers = players.map(player => ({ ...player, vote: null }));
+    const resetPlayers = players.map((player) => ({ ...player, vote: null }));
     set({ players: resetPlayers });
-    
+
     // Resetear voto del usuario actual
     if (currentUser) {
       set({ currentUser: { ...currentUser, vote: null } });
