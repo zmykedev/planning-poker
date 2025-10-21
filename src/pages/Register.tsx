@@ -1,9 +1,8 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router';
 import { useWebSocketStore } from '../store/websocketStore';
-import { CardDeckSelector } from '../components/CardDeckSelector';
 import type { User, CardDeck } from '@/types/session';
-import { Card, Tabs, Input, Button, Radio, Space, Typography, Alert } from 'antd';
+import { Card, Input, Button, Radio, Space, Typography, Alert } from 'antd';
 import { UserOutlined, TeamOutlined, PlusOutlined } from '@ant-design/icons';
 
 const { Title, Text } = Typography;
@@ -15,30 +14,34 @@ const DEFAULT_DECK: CardDeck = {
 };
 
 export const Register = () => {
-  const { connect, createRoom, joinRoom, setCurrentUser, connected } = useWebSocketStore();
+  const navigate = useNavigate();
+  const { connect, createRoom, joinRoom, setCurrentUser, connected, roomId, setPersistentRoom } =
+    useWebSocketStore();
 
   const [newPlayerName, setNewPlayerName] = useState('');
   const [role, setRole] = useState<User['role']>('voter');
-  const [selectedDeck, setSelectedDeck] = useState<CardDeck>(DEFAULT_DECK);
-  const [roomId, setRoomId] = useState('');
+  const [roomIdInput, setRoomIdInput] = useState('');
   const [roomName, setRoomName] = useState('');
   const [error, setError] = useState('');
-  const navigate = useNavigate();
 
-  // Conectar al WebSocket cuando el componente se monta
   useEffect(() => {
     connect();
   }, [connect]);
 
+  // Detectar si hay sala en la URL
+  const urlParams = new URLSearchParams(window.location.search);
+  const roomFromUrl = urlParams.get('room');
+  const hasRoomInUrl = !!roomFromUrl;
+
   const handleCreateRoom = () => {
     const name = newPlayerName.trim();
     const room = roomName.trim();
-    
+
     if (!name) {
       setError('El nombre es requerido');
       return;
     }
-    
+
     if (!room) {
       setError('El nombre de la sala es requerido');
       return;
@@ -46,19 +49,21 @@ export const Register = () => {
 
     setError('');
     setCurrentUser(name, role);
-    createRoom(room, name, selectedDeck);
+    createRoom(room, name, DEFAULT_DECK);
+
+    // Redirigir inmediatamente a main con el ID generado
     navigate('/main');
   };
 
   const handleJoinRoom = () => {
     const name = newPlayerName.trim();
-    const room = roomId.trim();
-    
+    const room = roomIdInput.trim();
+
     if (!name) {
       setError('El nombre es requerido');
       return;
     }
-    
+
     if (!room) {
       setError('El ID de la sala es requerido');
       return;
@@ -66,218 +71,238 @@ export const Register = () => {
 
     setError('');
     setCurrentUser(name, role);
+    setPersistentRoom(room); // Guardar sala en localStorage
     joinRoom(room, name);
     navigate('/main');
   };
 
-  const onEnter = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === 'Enter') {
-      // Determine which action to take based on current tab
-      const activeTab = document.querySelector('.ant-tabs-tab-active')?.textContent;
-      if (activeTab?.includes('Crear')) {
-        handleCreateRoom();
-      } else {
-        handleJoinRoom();
-      }
+  const handleJoinLastRoom = () => {
+    const name = newPlayerName.trim();
+
+    if (!name) {
+      setError('El nombre es requerido');
+      return;
     }
+
+    if (!roomId) {
+      setError('No hay sala anterior disponible');
+      return;
+    }
+
+    setError('');
+    setCurrentUser(name, role);
+    joinRoom(roomId, name);
+    navigate('/main');
+  };
+
+  const handleJoinFromUrl = () => {
+    const name = newPlayerName.trim();
+
+    if (!name) {
+      setError('El nombre es requerido');
+      return;
+    }
+
+    if (!roomFromUrl) {
+      setError('No hay sala en la URL');
+      return;
+    }
+
+    setError('');
+    setCurrentUser(name, role);
+    setPersistentRoom(roomFromUrl);
+    joinRoom(roomFromUrl, name);
+    navigate('/main');
   };
 
   return (
-    <div className='min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 p-6'>
-      <div className='max-w-4xl mx-auto'>
+    <div className='min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100'>
+      <div className='w-full max-w-md p-6'>
         <div className='text-center mb-8'>
-          <Title level={1} className='text-indigo-900'>
+          <Title level={1} className='mb-2'>
             🃏 Planning Poker
           </Title>
-          <Text type='secondary' className='text-lg'>
-            Estimación colaborativa de historias de usuario
-          </Text>
+          <Text type='secondary'>Únete a una sesión de estimación</Text>
         </div>
 
         {!connected && (
           <Alert
-            message="Conectando al servidor..."
-            description="Estableciendo conexión WebSocket"
-            type="info"
+            message='Conectando al servidor...'
+            description='Estableciendo conexión WebSocket'
+            type='info'
             showIcon
-            className="mb-6"
+            className='mb-6'
           />
         )}
 
         {error && (
           <Alert
             message={error}
-            type="error"
+            type='error'
             showIcon
-            className="mb-6"
+            className='mb-6'
             closable
             onClose={() => setError('')}
           />
         )}
 
-        <Card className='max-w-2xl mx-auto'>
-          <Tabs
-            defaultActiveKey="create"
-            items={[
-              {
-                key: 'create',
-                label: (
-                  <span>
-                    <PlusOutlined />
-                    Crear Sala
-                  </span>
-                ),
-                children: (
-                  <div className='space-y-6'>
+        <Card className='mb-6'>
+          <div className='space-y-6'>
+            {/* Nombre del jugador */}
+            <div>
+              <label className='block mb-2'>
+                <Text strong>Nombre del jugador</Text>
+              </label>
+              <Input
+                size='large'
+                placeholder='Tu nombre'
+                value={newPlayerName}
+                onChange={(e) => setNewPlayerName(e.target.value)}
+                prefix={<UserOutlined />}
+              />
+            </div>
+
+            {/* Rol */}
+            <div>
+              <Text strong className='block mb-3'>
+                Rol
+              </Text>
+              <Radio.Group
+                value={role}
+                onChange={(e) => setRole(e.target.value)}
+                className='w-full'
+              >
+                <Space direction='vertical' className='w-full'>
+                  <Radio value='voter' className='w-full'>
                     <div>
-                      <label className='block mb-2'>
-                        <Text strong>Nombre del jugador</Text>
-                      </label>
-                      <Input
-                        size='large'
-                        placeholder='Tu nombre'
-                        value={newPlayerName}
-                        onChange={(e) => setNewPlayerName(e.target.value)}
-                        onKeyDown={onEnter}
-                        prefix={<UserOutlined />}
-                      />
+                      <Text strong>Votante</Text>
+                      <br />
+                      <Text type='secondary'>Puede votar y participar en la estimación</Text>
                     </div>
-
+                  </Radio>
+                  <Radio value='spectator' className='w-full'>
                     <div>
-                      <label className='block mb-2'>
-                        <Text strong>Nombre de la sala</Text>
-                      </label>
-                      <Input
-                        size='large'
-                        placeholder='Nombre de la sala'
-                        value={roomName}
-                        onChange={(e) => setRoomName(e.target.value)}
-                        onKeyDown={onEnter}
-                        prefix={<TeamOutlined />}
-                      />
+                      <Text strong>Espectador</Text>
+                      <br />
+                      <Text type='secondary'>Solo puede observar, no puede votar</Text>
                     </div>
+                  </Radio>
+                </Space>
+              </Radio.Group>
+            </div>
 
-                    <div>
-                      <Text strong className='block mb-3'>Rol</Text>
-                      <Radio.Group
-                        value={role}
-                        onChange={(e) => setRole(e.target.value)}
-                        className='w-full'
-                      >
-                        <Space direction='vertical' className='w-full'>
-                          <Radio value='voter' className='w-full'>
-                            <div>
-                              <Text strong>Votante</Text>
-                              <br />
-                              <Text type='secondary'>Puede votar y participar en la estimación</Text>
-                            </div>
-                          </Radio>
-                          <Radio value='spectator' className='w-full'>
-                            <div>
-                              <Text strong>Espectador</Text>
-                              <br />
-                              <Text type='secondary'>Solo puede observar, no puede votar</Text>
-                            </div>
-                          </Radio>
-                        </Space>
-                      </Radio.Group>
-                    </div>
+            {/* Crear Sala */}
+            <div className='border-t pt-6'>
+              <div className='flex items-center mb-4'>
+                <PlusOutlined className='mr-2' />
+                <Text strong>Crear Nueva Sala</Text>
+              </div>
 
-                    <CardDeckSelector
-                      selectedDeck={selectedDeck}
-                      onDeckChange={setSelectedDeck}
-                    />
+              <div className='space-y-4'>
+                <Input
+                  placeholder='Nombre de la sala'
+                  value={roomName}
+                  onChange={(e) => setRoomName(e.target.value)}
+                  prefix={<TeamOutlined />}
+                />
 
-                    <Button
-                      type='primary'
-                      size='large'
-                      onClick={handleCreateRoom}
-                      disabled={!connected}
-                      className='w-full'
-                    >
-                      Crear Sala
-                    </Button>
-                  </div>
-                ),
-              },
-              {
-                key: 'join',
-                label: (
-                  <span>
-                    <TeamOutlined />
-                    Unirse a Sala
-                  </span>
-                ),
-                children: (
-                  <div className='space-y-6'>
-                    <div>
-                      <label className='block mb-2'>
-                        <Text strong>Nombre del jugador</Text>
-                      </label>
-                      <Input
-                        size='large'
-                        placeholder='Tu nombre'
-                        value={newPlayerName}
-                        onChange={(e) => setNewPlayerName(e.target.value)}
-                        onKeyDown={onEnter}
-                        prefix={<UserOutlined />}
-                      />
-                    </div>
+                <Button
+                  type='primary'
+                  size='large'
+                  onClick={handleCreateRoom}
+                  disabled={!connected}
+                  className='w-full'
+                >
+                  Crear Sala
+                </Button>
+              </div>
+            </div>
 
-                    <div>
-                      <label className='block mb-2'>
-                        <Text strong>ID de la sala</Text>
-                      </label>
-                      <Input
-                        size='large'
-                        placeholder='ID de la sala (ej: ABC123)'
-                        value={roomId}
-                        onChange={(e) => setRoomId(e.target.value)}
-                        onKeyDown={onEnter}
-                        prefix={<TeamOutlined />}
-                      />
-                    </div>
+            {/* Unirse a Sala */}
+            <div className='border-t pt-6'>
+              <div className='flex items-center mb-4'>
+                <TeamOutlined className='mr-2' />
+                <Text strong>Unirse a Sala</Text>
+              </div>
 
-                    <div>
-                      <Text strong className='block mb-3'>Rol</Text>
-                      <Radio.Group
-                        value={role}
-                        onChange={(e) => setRole(e.target.value)}
-                        className='w-full'
-                      >
-                        <Space direction='vertical' className='w-full'>
-                          <Radio value='voter' className='w-full'>
-                            <div>
-                              <Text strong>Votante</Text>
-                              <br />
-                              <Text type='secondary'>Puede votar y participar en la estimación</Text>
-                            </div>
-                          </Radio>
-                          <Radio value='spectator' className='w-full'>
-                            <div>
-                              <Text strong>Espectador</Text>
-                              <br />
-                              <Text type='secondary'>Solo puede observar, no puede votar</Text>
-                            </div>
-                          </Radio>
-                        </Space>
-                      </Radio.Group>
-                    </div>
+              <div className='space-y-4'>
+                <Input
+                  placeholder='ID de la sala'
+                  value={roomIdInput}
+                  onChange={(e) => setRoomIdInput(e.target.value.toUpperCase())}
+                  prefix={<TeamOutlined />}
+                />
 
-                    <Button
-                      type='primary'
-                      size='large'
-                      onClick={handleJoinRoom}
-                      disabled={!connected}
-                      className='w-full'
-                    >
-                      Unirse a la Sala
-                    </Button>
-                  </div>
-                ),
-              },
-            ]}
-          />
+                <Button
+                  type='default'
+                  size='large'
+                  onClick={handleJoinRoom}
+                  disabled={!connected}
+                  className='w-full'
+                >
+                  Unirse a Sala
+                </Button>
+              </div>
+            </div>
+
+            {/* Unirse desde URL */}
+            {hasRoomInUrl && (
+              <div className='border-t pt-6'>
+                <div className='flex items-center mb-4'>
+                  <TeamOutlined className='mr-2' />
+                  <Text strong>Sala Compartida</Text>
+                </div>
+
+                <div className='space-y-4'>
+                  <Alert
+                    message={`Sala: ${roomFromUrl}`}
+                    description='Te unirás automáticamente a la sala compartida'
+                    type='info'
+                    showIcon
+                  />
+
+                  <Button
+                    type='primary'
+                    size='large'
+                    onClick={handleJoinFromUrl}
+                    disabled={!connected}
+                    className='w-full'
+                  >
+                    Unirse a Sala Compartida
+                  </Button>
+                </div>
+              </div>
+            )}
+
+            {/* Sala Anterior */}
+            {roomId && (
+              <div className='border-t pt-6'>
+                <div className='flex items-center mb-4'>
+                  <TeamOutlined className='mr-2' />
+                  <Text strong>Sala Anterior</Text>
+                </div>
+
+                <div className='space-y-4'>
+                  <Alert
+                    message={`Sala: ${roomId}`}
+                    description='Únete a la sala que usaste anteriormente'
+                    type='success'
+                    showIcon
+                  />
+
+                  <Button
+                    type='default'
+                    size='large'
+                    onClick={handleJoinLastRoom}
+                    disabled={!connected}
+                    className='w-full'
+                  >
+                    Unirse a Sala Anterior
+                  </Button>
+                </div>
+              </div>
+            )}
+          </div>
         </Card>
       </div>
     </div>

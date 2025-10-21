@@ -10,8 +10,27 @@ const getWebSocketURL = () => {
 
 const WS_URL = getWebSocketURL();
 
+// Obtener sala desde URL o localStorage
+const getInitialRoom = () => {
+  if (typeof window !== 'undefined') {
+    // Primero verificar si hay parámetro de sala en la URL
+    const urlParams = new URLSearchParams(window.location.search);
+    const roomFromUrl = urlParams.get('room');
+
+    if (roomFromUrl) {
+      // Guardar en localStorage para futuras sesiones
+      localStorage.setItem('planning-poker-room', roomFromUrl);
+      return roomFromUrl;
+    }
+
+    // Si no hay en URL, usar localStorage
+    return localStorage.getItem('planning-poker-room') || null;
+  }
+  return null;
+};
+
 interface WebSocketStore {
-  // Estado
+  // Estado básico
   socket: WebSocket | null;
   connected: boolean;
   currentUser: User | null;
@@ -20,7 +39,7 @@ interface WebSocketStore {
   revealed: boolean;
   cardDeck: CardDeck | null;
 
-  // Acciones
+  // Acciones básicas
   connect: () => void;
   disconnect: () => void;
   createRoom: (roomName: string, userName: string, cardDeck: CardDeck) => void;
@@ -29,6 +48,9 @@ interface WebSocketStore {
   reveal: () => void;
   reset: () => void;
   setCurrentUser: (name: string, role: User['role']) => void;
+  setPersistentRoom: (roomId: string) => void;
+  clearPersistentRoom: () => void;
+  getRoomLink: () => string;
 }
 
 export const useWebSocketStore = create<WebSocketStore>((set, get) => ({
@@ -36,8 +58,8 @@ export const useWebSocketStore = create<WebSocketStore>((set, get) => ({
   connected: false,
   currentUser: null,
   players: [],
-  roomId: null,
-  revealed: false, // Estado inicial: no revelado
+  roomId: getInitialRoom(), // Cargar sala desde URL o localStorage
+  revealed: false,
   cardDeck: null,
 
   connect: () => {
@@ -60,16 +82,12 @@ export const useWebSocketStore = create<WebSocketStore>((set, get) => ({
               set({
                 roomId: data.roomId,
                 players: data.users || [],
-                revealed: data.revealed || false, // Asegurar que revealed sea boolean
+                revealed: data.revealed || false,
                 cardDeck: data.cardDeck,
               });
-              // Actualizar el currentUser con la información del servidor
-              const { currentUser } = get();
-              if (currentUser && data.users) {
-                const serverUser = data.users.find((user: User) => user.name === currentUser.name);
-                if (serverUser) {
-                  set({ currentUser: serverUser });
-                }
+              // Guardar sala en localStorage
+              if (data.roomId) {
+                localStorage.setItem('planning-poker-room', data.roomId);
               }
               break;
             }
@@ -77,18 +95,8 @@ export const useWebSocketStore = create<WebSocketStore>((set, get) => ({
             case 'room:updated': {
               set({
                 players: data.users,
-                revealed: data.revealed || false, // Asegurar que revealed sea boolean
+                revealed: data.revealed || false,
               });
-              // Actualizar el currentUser con la información del servidor
-              const { currentUser: currentUserUpdated } = get();
-              if (currentUserUpdated && data.users) {
-                const serverUser = data.users.find(
-                  (user: User) => user.name === currentUserUpdated.name,
-                );
-                if (serverUser) {
-                  set({ currentUser: serverUser });
-                }
-              }
               break;
             }
 
@@ -98,12 +106,9 @@ export const useWebSocketStore = create<WebSocketStore>((set, get) => ({
 
             case 'room:reset': {
               set({ revealed: false });
-              // Resetear el voto del usuario actual
-              const { currentUser: currentUserReset } = get();
-              if (currentUserReset) {
-                set({
-                  currentUser: { ...currentUserReset, vote: null },
-                });
+              const { currentUser } = get();
+              if (currentUser) {
+                set({ currentUser: { ...currentUser, vote: null } });
               }
               break;
             }
@@ -131,7 +136,6 @@ export const useWebSocketStore = create<WebSocketStore>((set, get) => ({
     } catch (error) {
       console.error('Error creating WebSocket connection:', error);
       set({ connected: false });
-      // Reintentar conexión después de 5 segundos
       setTimeout(() => get().connect(), 5000);
     }
   },
@@ -146,43 +150,52 @@ export const useWebSocketStore = create<WebSocketStore>((set, get) => ({
 
   createRoom: (roomName, userName, cardDeck) => {
     const { socket } = get();
+
+    // Generar ID único para la sala
+    const roomId = Math.random().toString(36).substr(2, 9).toUpperCase();
+
+    // Establecer la sala inmediatamente en el estado local con datos iniciales
+    set({
+      roomId,
+      cardDeck,
+      players: [
+        {
+          id: Math.random().toString(36).substr(2, 9),
+          name: userName,
+          vote: null,
+          role: 'voter',
+          isReady: true,
+        },
+      ],
+      revealed: false,
+    });
+    localStorage.setItem('planning-poker-room', roomId);
+
     if (!socket) {
-      console.log('Cannot create room: socket not available');
+      console.log('Cannot create room: socket not available, but room ID generated locally');
       return;
     }
 
     const message = {
       type: 'room:create',
+      roomId, // Incluir el ID generado
       roomName,
       userName,
       cardDeck,
     };
 
     socket.send(JSON.stringify(message));
-
-    // Fallback: Si no recibimos respuesta del servidor en 3 segundos, crear la sala localmente
-    setTimeout(() => {
-      const { roomId: currentRoomId } = get();
-      if (!currentRoomId) {
-        const roomId = Math.random().toString(36).substr(2, 9).toUpperCase();
-        const currentUser = get().currentUser;
-
-        if (currentUser) {
-          set({
-            roomId,
-            players: [currentUser],
-            revealed: false,
-            cardDeck,
-          });
-        }
-      }
-    }, 3000);
   },
 
   joinRoom: (roomId, userName) => {
     const { socket } = get();
+
+    // Establecer la sala inmediatamente en el estado local
+    set({ roomId });
+    localStorage.setItem('planning-poker-room', roomId);
+
     if (!socket) {
-      console.log('Cannot join room: socket not available');
+      console.log('Cannot join room: socket not available, but room ID set locally');
       return;
     }
 
@@ -193,50 +206,20 @@ export const useWebSocketStore = create<WebSocketStore>((set, get) => ({
     };
 
     socket.send(JSON.stringify(message));
-
-    // Fallback: Si no recibimos respuesta del servidor en 3 segundos, crear la sala localmente
-    setTimeout(() => {
-      const { roomId: currentRoomId } = get();
-      if (!currentRoomId) {
-        const currentUser = get().currentUser;
-
-        if (currentUser) {
-          // Usar un mazo por defecto si no tenemos uno
-          const defaultDeck = {
-            id: 'fibonacci',
-            name: 'Fibonacci',
-            values: [0, 1, 2, 3, 5, 8, 13, 21, 34, 55, 89, '?'],
-          };
-
-          set({
-            roomId,
-            players: [currentUser],
-            revealed: false,
-            cardDeck: defaultDeck,
-          });
-        }
-      }
-    }, 3000);
   },
 
   vote: (value) => {
-    const { socket, currentUser, players } = get();
+    const { socket, currentUser } = get();
     if (!currentUser) {
       console.log('Cannot vote: currentUser not available');
       return;
     }
 
-    // Actualizar el voto localmente inmediatamente para mejor UX
+    // Actualizar voto localmente
     const updatedUser = { ...currentUser, vote: value };
     set({ currentUser: updatedUser });
 
-    // Actualizar también en la lista de players
-    const updatedPlayers = players.map((player) =>
-      player.id === currentUser.id ? updatedUser : player,
-    );
-    set({ players: updatedPlayers });
-
-    // Enviar al servidor si está disponible
+    // Enviar al servidor
     if (socket) {
       socket.send(
         JSON.stringify({
@@ -249,11 +232,8 @@ export const useWebSocketStore = create<WebSocketStore>((set, get) => ({
 
   reveal: () => {
     const { socket } = get();
-
-    // Actualizar localmente
     set({ revealed: true });
 
-    // Enviar al servidor si está disponible
     if (socket) {
       socket.send(
         JSON.stringify({
@@ -264,21 +244,13 @@ export const useWebSocketStore = create<WebSocketStore>((set, get) => ({
   },
 
   reset: () => {
-    const { socket, currentUser, players } = get();
-
-    // Actualizar localmente
+    const { socket, currentUser } = get();
     set({ revealed: false });
 
-    // Resetear votos de todos los players
-    const resetPlayers = players.map((player) => ({ ...player, vote: null }));
-    set({ players: resetPlayers });
-
-    // Resetear voto del usuario actual
     if (currentUser) {
       set({ currentUser: { ...currentUser, vote: null } });
     }
 
-    // Enviar al servidor si está disponible
     if (socket) {
       socket.send(
         JSON.stringify({
@@ -297,5 +269,25 @@ export const useWebSocketStore = create<WebSocketStore>((set, get) => ({
       isReady: false,
     };
     set({ currentUser: newUser });
+  },
+
+  setPersistentRoom: (roomId) => {
+    set({ roomId });
+    localStorage.setItem('planning-poker-room', roomId);
+  },
+
+  clearPersistentRoom: () => {
+    set({ roomId: null });
+    localStorage.removeItem('planning-poker-room');
+  },
+
+  getRoomLink: () => {
+    const { roomId } = get();
+    if (!roomId) return '';
+
+    const baseUrl = window.location.origin + window.location.pathname;
+    // Asegurar que el link apunte a la página de registro
+    const registerUrl = baseUrl.replace('/main', '/register');
+    return `${registerUrl}?room=${roomId}`;
   },
 }));
