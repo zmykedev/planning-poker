@@ -79,11 +79,12 @@ export const useWebSocketStore = create<WebSocketStore>((set, get) => ({
           switch (data.type) {
             case 'room:created':
             case 'room:joined': {
+              console.log('Room response received:', data);
               set({
                 roomId: data.roomId,
                 players: data.users || [],
                 revealed: data.revealed || false,
-                cardDeck: data.cardDeck,
+                cardDeck: data.cardDeck || get().cardDeck, // Mantener cardDeck si no viene del servidor
               });
               // Guardar sala en localStorage
               if (data.roomId) {
@@ -151,40 +152,62 @@ export const useWebSocketStore = create<WebSocketStore>((set, get) => ({
   createRoom: (roomName, userName, cardDeck) => {
     const { socket } = get();
 
-    // Generar ID único para la sala
-    const roomId = Math.random().toString(36).substr(2, 9).toUpperCase();
-
-    // Establecer la sala inmediatamente en el estado local con datos iniciales
+    // Inicializar el cardDeck localmente para mostrar las cartas inmediatamente
     set({
-      roomId,
       cardDeck,
-      players: [
-        {
-          id: Math.random().toString(36).substr(2, 9),
-          name: userName,
-          vote: null,
-          role: 'voter',
-          isReady: true,
-        },
-      ],
       revealed: false,
     });
-    localStorage.setItem('planning-poker-room', roomId);
 
     if (!socket) {
-      console.log('Cannot create room: socket not available, but room ID generated locally');
+      console.log('Cannot create room: socket not available');
+      // Fallback: crear sala localmente
+      const fallbackRoomId = Math.random().toString(36).substr(2, 9).toUpperCase();
+      set({
+        roomId: fallbackRoomId,
+        players: [
+          {
+            id: Math.random().toString(36).substr(2, 9),
+            name: userName,
+            vote: null,
+            role: 'voter',
+            isReady: true,
+          },
+        ],
+      });
+      localStorage.setItem('planning-poker-room', fallbackRoomId);
       return;
     }
 
     const message = {
       type: 'room:create',
-      roomId, // Incluir el ID generado
       roomName,
       userName,
       cardDeck,
     };
 
     socket.send(JSON.stringify(message));
+
+    // Fallback: si no hay respuesta del servidor en 3 segundos, crear sala localmente
+    setTimeout(() => {
+      const { roomId } = get();
+      if (!roomId) {
+        console.log('No server response, creating room locally');
+        const fallbackRoomId = Math.random().toString(36).substr(2, 9).toUpperCase();
+        set({
+          roomId: fallbackRoomId,
+          players: [
+            {
+              id: Math.random().toString(36).substr(2, 9),
+              name: userName,
+              vote: null,
+              role: 'voter',
+              isReady: true,
+            },
+          ],
+        });
+        localStorage.setItem('planning-poker-room', fallbackRoomId);
+      }
+    }, 3000);
   },
 
   joinRoom: (roomId, userName) => {
