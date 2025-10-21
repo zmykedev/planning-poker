@@ -51,6 +51,10 @@ export default function Main() {
       cardDeck: cardDeck ? cardDeck.name : 'null',
       cardDeckValues: cardDeck?.values || 'null',
     });
+
+    if (roomId) {
+      console.log('Current room ID:', roomId);
+    }
   }, [connected, currentUser, players, roomId, revealed, cardDeck]);
 
   // Disconnect on unmount
@@ -142,7 +146,12 @@ export default function Main() {
                 <Text strong>Sala: {roomId}</Text>
                 <Text type='secondary'>•</Text>
                 <Text type='secondary'>
-                  Rol: {currentUser.role === 'voter' ? 'Votante' : 'Espectador'}
+                  Rol:{' '}
+                  {currentUser.isModerator
+                    ? 'Moderador'
+                    : currentUser.role === 'voter'
+                      ? 'Votante'
+                      : 'Espectador'}
                 </Text>
                 <Text type='secondary'>•</Text>
                 <Text type='secondary'>Voto: {currentUser.vote ?? 'Sin votar'}</Text>
@@ -197,8 +206,8 @@ export default function Main() {
           <ParticipantsTable />
         </Card>
 
-        {/* Voting Cards - Only for voters */}
-        {currentUser.role === 'voter' && cardDeck && (
+        {/* Voting Cards - Only for voters/moderators */}
+        {(currentUser.isModerator || currentUser.role === 'voter') && cardDeck && (
           <Card title='🃏 Selecciona tu voto' className='mb-6'>
             <div className='mb-4 text-center'>
               <Text type='secondary'>
@@ -220,7 +229,7 @@ export default function Main() {
         )}
 
         {/* Show message if cards are not available */}
-        {currentUser.role === 'voter' && !cardDeck && (
+        {(currentUser.isModerator || currentUser.role === 'voter') && !cardDeck && (
           <Card title='🃏 Cartas no disponibles' className='mb-6'>
             <div className='text-center'>
               <Text type='secondary'>
@@ -230,8 +239,8 @@ export default function Main() {
           </Card>
         )}
 
-        {/* Controls - Only for voters */}
-        {currentUser.role === 'voter' && (
+        {/* Controls - Only for voters/moderators */}
+        {(currentUser.isModerator || currentUser.role === 'voter') && (
           <Card>
             <div className='text-center'>
               <Space size='large'>

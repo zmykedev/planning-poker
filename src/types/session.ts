@@ -7,7 +7,8 @@ export interface CardDeck {
 export interface User {
   id: string;
   name: string;
-  role: 'voter' | 'spectator';
+  role?: 'voter' | 'spectator'; // Opcional para compatibilidad con backend
+  isModerator?: boolean; // Campo del backend
   vote: number | string | null;
   isReady: boolean;
 }

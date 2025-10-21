@@ -73,20 +73,34 @@ export const useWebSocketStore = create<WebSocketStore>((set, get) => ({
             case 'room:created':
             case 'room:joined': {
               console.log('Room response received:', data);
+
+              // El backend devuelve la sala dentro de un objeto 'room'
+              const roomData = data.room || data;
+              const roomId = roomData.id;
+              const users = roomData.users || [];
+              const revealed = roomData.revealed || false;
+              const cardDeck = roomData.cardDeck || get().cardDeck;
+
+              console.log('Setting roomId from backend:', roomId);
+              console.log('Room data:', roomData);
+
               set({
-                roomId: data.roomId,
-                players: data.users || [],
-                revealed: data.revealed || false,
-                cardDeck: data.cardDeck || get().cardDeck, // Mantener cardDeck si no viene del servidor
+                roomId,
+                players: users,
+                revealed,
+                cardDeck,
               });
-              // Sala establecida desde servidor
+
+              console.log('Room state updated with backend ID:', roomId);
               break;
             }
 
             case 'room:updated': {
+              // El backend puede devolver la sala dentro de un objeto 'room' o directamente
+              const roomData = data.room || data;
               set({
-                players: data.users,
-                revealed: data.revealed || false,
+                players: roomData.users || data.users,
+                revealed: roomData.revealed || data.revealed || false,
               });
               break;
             }
@@ -150,7 +164,7 @@ export const useWebSocketStore = create<WebSocketStore>((set, get) => ({
 
     if (!socket) {
       console.log('Cannot create room: socket not available');
-      // Fallback: crear sala localmente
+      // Fallback: crear sala localmente solo si no hay conexión
       const fallbackRoomId = Math.random().toString(36).substr(2, 9).toUpperCase();
       set({
         roomId: fallbackRoomId,
@@ -164,10 +178,11 @@ export const useWebSocketStore = create<WebSocketStore>((set, get) => ({
           },
         ],
       });
-      // Sala creada localmente
+      console.log('Room created locally (no socket):', fallbackRoomId);
       return;
     }
 
+    console.log('Sending room creation request to backend...');
     const message = {
       type: 'room:create',
       roomName,
@@ -176,12 +191,13 @@ export const useWebSocketStore = create<WebSocketStore>((set, get) => ({
     };
 
     socket.send(JSON.stringify(message));
+    console.log('Room creation message sent:', message);
 
-    // Fallback: si no hay respuesta del servidor en 3 segundos, crear sala localmente
+    // Fallback: si no hay respuesta del servidor en 5 segundos, crear sala localmente
     setTimeout(() => {
       const { roomId } = get();
       if (!roomId) {
-        console.log('No server response, creating room locally');
+        console.log('No server response after 5 seconds, creating room locally');
         const fallbackRoomId = Math.random().toString(36).substr(2, 9).toUpperCase();
         set({
           roomId: fallbackRoomId,
@@ -195,9 +211,9 @@ export const useWebSocketStore = create<WebSocketStore>((set, get) => ({
             },
           ],
         });
-        // Sala creada localmente
+        console.log('Room created locally (timeout):', fallbackRoomId);
       }
-    }, 3000);
+    }, 5000);
   },
 
   joinRoom: (roomId, userName) => {
@@ -205,6 +221,7 @@ export const useWebSocketStore = create<WebSocketStore>((set, get) => ({
 
     // Establecer la sala inmediatamente en el estado local
     set({ roomId });
+    console.log('Attempting to join room:', roomId);
 
     if (!socket) {
       console.log('Cannot join room: socket not available, but room ID set locally');
@@ -217,6 +234,7 @@ export const useWebSocketStore = create<WebSocketStore>((set, get) => ({
       userName,
     };
 
+    console.log('Sending join room request:', message);
     socket.send(JSON.stringify(message));
   },
 
@@ -277,6 +295,7 @@ export const useWebSocketStore = create<WebSocketStore>((set, get) => ({
       id: crypto.randomUUID(),
       name,
       role,
+      isModerator: role === 'voter', // Convertir role a isModerator para compatibilidad
       vote: null,
       isReady: false,
     };
