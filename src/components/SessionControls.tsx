@@ -1,23 +1,34 @@
 import { Button, Space, Card } from 'antd';
 import { useNavigate } from 'react-router';
-import { useStore } from '../store';
+import { useWebSocketStore } from '../store/websocketStore';
 
 export const SessionControls = () => {
-  const { revealVotes, resetVotes, logout } = useStore();
+  const { reveal, reset, disconnect, revealed, players } = useWebSocketStore();
   const navigate = useNavigate();
 
   const handleLogout = () => {
-    logout();
-    navigate('/');
+    disconnect();
+    navigate('/register');
   };
+
+  const canReveal = !revealed && players.filter(p => p.role === 'voter').every(p => p.vote !== null);
 
   return (
     <Card className='mt-8'>
       <Space size='large' wrap className='flex justify-center'>
-        <Button type='primary' onClick={revealVotes}>
-          Revelar Votos
+        <Button 
+          type='primary' 
+          onClick={reveal}
+          disabled={!canReveal}
+        >
+          {revealed ? 'Votos Revelados' : 'Revelar Votos'}
         </Button>
-        <Button onClick={resetVotes}>Nueva Ronda</Button>
+        <Button 
+          onClick={reset}
+          disabled={!revealed}
+        >
+          Nueva Ronda
+        </Button>
         <Button danger onClick={handleLogout}>
           Salir de la Sesión
         </Button>

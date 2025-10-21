@@ -1,152 +1,202 @@
-import { usePokerStore } from '../store';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router';
+import { useWebSocketStore } from '../store/websocketStore';
+import { ParticipantsTable } from '../components/ParticipantsTable';
+import { SessionControls } from '../components/SessionControls';
+import { PokerCard } from '../components/PokerCard';
+import { Card, Space, Typography, Alert, Spin, Button } from 'antd';
+import { UserOutlined, DisconnectOutlined } from '@ant-design/icons';
+
+const { Title, Text } = Typography;
 
 export default function Main() {
-  const [newPlayerName, setNewPlayerName] = useState('');
-  // Store de Zustand
+  const {
+    connected,
+    currentUser,
+    players,
+    roomId,
+    revealed,
+    cardDeck,
+    vote,
+    reveal,
+    reset,
+    disconnect,
+  } = useWebSocketStore();
 
-  const CARDS = ['0', '1', '2', '3', '5', '8', '13', '21', '?'];
+  const [selectedCard, setSelectedCard] = useState<number | string | null>(null);
+  const navigate = useNavigate();
 
-  const { players, votes, revealed, addPlayer, removePlayer, vote, revealVotes, reset } =
-    usePokerStore();
-
-  console.log('Current players:', players);
-
-  const handleAddPlayer = () => {
-    if (newPlayerName.trim()) {
-      addPlayer(newPlayerName.trim());
-      setNewPlayerName('');
+  // Redirect to register if no current user
+  useEffect(() => {
+    if (!currentUser) {
+      navigate('/register');
     }
+  }, [currentUser, navigate]);
+
+  // Disconnect on unmount
+  useEffect(() => {
+    return () => {
+      disconnect();
+    };
+  }, [disconnect]);
+
+  const handleCardClick = (value: number | string) => {
+    if (revealed || currentUser?.role !== 'voter') return;
+    
+    setSelectedCard(value);
+    vote(value);
   };
 
-  const allVoted = players.length > 0 && players.every((p) => votes[p.id]);
-
-  const getAverage = () => {
-    const numericVotes = Object.values(votes)
-      .filter((v) => v !== '?')
-      .map(Number);
-    if (numericVotes.length === 0) return 'N/A';
-    const avg = numericVotes.reduce((a, b) => a + b, 0) / numericVotes.length;
-    return avg.toFixed(1);
+  const handleReveal = () => {
+    reveal();
   };
+
+  const handleReset = () => {
+    reset();
+    setSelectedCard(null);
+  };
+
+  const handleDisconnect = () => {
+    disconnect();
+    navigate('/register');
+  };
+
+  if (!connected) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100">
+        <Card className="text-center p-8">
+          <Spin size="large" />
+          <Title level={4} className="mt-4">Conectando al servidor...</Title>
+          <Text type="secondary">Estableciendo conexión WebSocket</Text>
+        </Card>
+      </div>
+    );
+  }
+
+  if (!currentUser) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100">
+        <Card className="text-center p-8">
+          <Title level={4}>No hay usuario activo</Title>
+          <Button type="primary" onClick={() => navigate('/register')}>
+            Ir al registro
+          </Button>
+        </Card>
+      </div>
+    );
+  }
 
   return (
-    <div className='min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 p-8'>
-      <div className='max-w-4xl mx-auto'>
-        <h1 className='text-4xl font-bold text-center text-indigo-900 mb-8'>Planning Poker</h1>
-
-        {/* Agregar jugador */}
-        <div className='bg-white rounded-lg shadow-md p-6 mb-6'>
-          <div className='flex gap-2'>
-            <input
-              type='text'
-              value={newPlayerName}
-              onChange={(e) => setNewPlayerName(e.target.value)}
-              onKeyPress={(e) => e.key === 'Enter' && handleAddPlayer()}
-              placeholder='Nombre del jugador'
-              className='flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500'
-            />
-            <button
-              onClick={handleAddPlayer}
-              className='px-6 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition'
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 p-6">
+      <div className="max-w-7xl mx-auto">
+        {/* Header */}
+        <Card className="mb-6">
+          <div className="flex justify-between items-center">
+            <div>
+              <Title level={2} className="mb-2">
+                🃏 Planning Poker
+              </Title>
+              <Space>
+                <Text strong>Usuario: {currentUser.name}</Text>
+                <Text type="secondary">•</Text>
+                <Text type="secondary">Sala: {roomId}</Text>
+                <Text type="secondary">•</Text>
+                <Text type="secondary">Rol: {currentUser.role === 'voter' ? 'Votante' : 'Espectador'}</Text>
+              </Space>
+            </div>
+            <Button 
+              icon={<DisconnectOutlined />} 
+              onClick={handleDisconnect}
+              danger
             >
-              Agregar
-            </button>
+              Desconectar
+            </Button>
           </div>
-        </div>
+        </Card>
 
-        {/* Lista de jugadores */}
-        {players.length > 0 && (
-          <div className='bg-white rounded-lg shadow-md p-6 mb-6'>
-            <h2 className='text-xl font-semibold mb-4 text-gray-800'>Jugadores</h2>
-            <div className='space-y-2'>
-              {players.map((player) => (
-                <div
-                  key={player.id}
-                  className='flex items-center justify-between p-3 bg-gray-50 rounded-lg'
-                >
-                  <div className='flex items-center gap-3'>
-                    <span className='font-medium text-gray-800'>{player.name}</span>
-                    {votes[player.id] && (
-                      <span className='px-3 py-1 bg-green-100 text-green-800 rounded-full text-sm'>
-                        {revealed ? votes[player.id] : '✓ Votó'}
-                      </span>
-                    )}
-                  </div>
-                  <button
-                    onClick={() => removePlayer(player.id)}
-                    className='text-red-500 hover:text-red-700'
-                  >
-                    ✕
-                  </button>
-                </div>
+        {/* Connection Status */}
+        {!connected && (
+          <Alert
+            message="Desconectado del servidor"
+            description="Intentando reconectar..."
+            type="warning"
+            showIcon
+            className="mb-6"
+          />
+        )}
+
+        {/* Game Status */}
+        <Card className="mb-6">
+          <div className="text-center">
+            <Title level={3}>
+              {revealed ? '🎯 Votos Revelados' : '⏳ Votando...'}
+            </Title>
+            <Text type="secondary">
+              {revealed 
+                ? 'Los votos han sido revelados. Puedes iniciar una nueva ronda.'
+                : 'Los participantes están votando. Espera a que todos voten para revelar.'
+              }
+            </Text>
+          </div>
+        </Card>
+
+        {/* Participants */}
+        <Card title="👥 Participantes" className="mb-6">
+          <ParticipantsTable />
+        </Card>
+
+        {/* Voting Cards - Only for voters */}
+        {currentUser.role === 'voter' && cardDeck && (
+          <Card title="🃏 Selecciona tu voto" className="mb-6">
+            <div className="flex flex-wrap justify-center gap-4">
+              {cardDeck.values.map((value) => (
+                <PokerCard
+                  key={value}
+                  value={value}
+                  isSelected={selectedCard === value}
+                  onClick={() => handleCardClick(value)}
+                />
               ))}
             </div>
-          </div>
+          </Card>
         )}
 
-        {/* Cartas para votar */}
-        {players.length > 0 && (
-          <div className='bg-white rounded-lg shadow-md p-6 mb-6'>
-            <h2 className='text-xl font-semibold mb-4 text-gray-800'>Selecciona tu carta</h2>
-
-            {players.map((player) => (
-              <div key={player.id} className='mb-6'>
-                <h3 className='font-medium text-gray-700 mb-3'>{player.name}</h3>
-                <div className='grid grid-cols-5 gap-3 sm:grid-cols-9'>
-                  {CARDS.map((card) => (
-                    <button
-                      key={card}
-                      onClick={() => vote(player.id, card)}
-                      disabled={revealed}
-                      className={`aspect-[2/3] rounded-lg font-bold text-xl transition transform hover:scale-105 ${
-                        votes[player.id] === card
-                          ? 'bg-indigo-600 text-white shadow-lg scale-105'
-                          : 'bg-white border-2 border-indigo-300 text-indigo-600 hover:border-indigo-500'
-                      } ${revealed ? 'opacity-50 cursor-not-allowed' : ''}`}
-                    >
-                      {card}
-                    </button>
-                  ))}
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
-
-        {/* Controles */}
-        {players.length > 0 && (
-          <div className='flex gap-4 justify-center'>
-            <button
-              onClick={revealVotes}
-              disabled={!allVoted || revealed}
-              className={`px-8 py-3 rounded-lg font-semibold transition ${
-                allVoted && !revealed
-                  ? 'bg-green-600 text-white hover:bg-green-700'
-                  : 'bg-gray-300 text-gray-500 cursor-not-allowed'
-              }`}
-            >
-              Revelar Votos
-            </button>
-            <button
-              onClick={reset}
-              className='px-8 py-3 bg-gray-600 text-white rounded-lg font-semibold hover:bg-gray-700 transition'
-            >
-              Nueva Ronda
-            </button>
-          </div>
-        )}
-
-        {/* Resultados */}
-        {revealed && (
-          <div className='mt-6 bg-white rounded-lg shadow-md p-6'>
-            <h2 className='text-2xl font-semibold mb-4 text-center text-gray-800'>Resultados</h2>
-            <div className='text-center'>
-              <p className='text-lg text-gray-600'>
-                Promedio: <span className='text-3xl font-bold text-indigo-600'>{getAverage()}</span>
-              </p>
+        {/* Controls - Only for voters */}
+        {currentUser.role === 'voter' && (
+          <Card>
+            <div className="text-center">
+              <Space size="large">
+                <Button 
+                  type="primary" 
+                  size="large"
+                  onClick={handleReveal}
+                  disabled={revealed || players.filter(p => p.role === 'voter').some(p => p.vote === null)}
+                >
+                  {revealed ? 'Votos Revelados' : 'Revelar Votos'}
+                </Button>
+                <Button 
+                  size="large"
+                  onClick={handleReset}
+                  disabled={!revealed}
+                >
+                  Nueva Ronda
+                </Button>
+              </Space>
             </div>
-          </div>
+          </Card>
+        )}
+
+        {/* Spectator Info */}
+        {currentUser.role === 'spectator' && (
+          <Card>
+            <div className="text-center">
+              <UserOutlined style={{ fontSize: 48, color: '#1890ff' }} />
+              <Title level={4} className="mt-4">Modo Espectador</Title>
+              <Text type="secondary">
+                Estás observando la sesión. Los votos se revelarán cuando el moderador lo decida.
+              </Text>
+            </div>
+          </Card>
         )}
       </div>
     </div>

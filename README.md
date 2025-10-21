@@ -1,23 +1,24 @@
-# 📚 CMPC-Libros Frontend
+# 🃏 Planning Poker App
 
-Sistema de gestión de inventario de libros con interfaz moderna y responsiva construida con React,
-TypeScript, Ant Design y Tailwind CSS.
+Aplicación de Planning Poker para estimación colaborativa de historias de usuario construida con React,
+TypeScript, Ant Design, Tailwind CSS y WebSocket para comunicación en tiempo real.
 
 ## 🎯 Descripción General
 
-CMPC-Libros Frontend es una aplicación web moderna que proporciona una interfaz intuitiva para la
-gestión completa de inventario de libros. La aplicación incluye funcionalidades avanzadas como
-búsqueda, filtrado, exportación de datos, sistema de auditoría y gestión de usuarios.
+Planning Poker App es una aplicación web moderna que permite a los equipos de desarrollo realizar
+estimaciones colaborativas de historias de usuario usando la metodología Planning Poker. La aplicación
+incluye funcionalidades como salas en tiempo real, diferentes mazos de cartas, roles de usuario y
+revelación de votos.
 
 ## ✨ Características Principales
 
 - 🎨 **Interfaz Moderna**: Diseño responsivo con Ant Design y Tailwind CSS
-- 🔐 **Autenticación JWT**: Sistema de login/registro seguro
-- 📚 **Gestión de Libros**: CRUD completo con validaciones
-- 🔍 **Búsqueda Avanzada**: Filtros múltiples y búsqueda en tiempo real
-- 📊 **Dashboard de Auditoría**: Monitoreo completo de operaciones
-- 📥 **Exportación de Datos**: Exportación CSV con filtros personalizables
-- 🌙 **Modo Oscuro**: Soporte completo para tema claro y oscuro
+- 🔌 **WebSocket en Tiempo Real**: Comunicación instantánea entre participantes
+- 🃏 **Múltiples Mazos de Cartas**: Fibonacci, Fibonacci Modificado, Potencias de 2, Tallas de Camiseta, Horas
+- 👥 **Roles de Usuario**: Votantes y Espectadores
+- 🏠 **Salas Colaborativas**: Crear o unirse a salas existentes
+- 🎯 **Revelación de Votos**: Sistema de revelación controlada
+- 🔄 **Nuevas Rondas**: Reinicio fácil para nuevas estimaciones
 - 📱 **Responsive**: Optimizado para dispositivos móviles y desktop
 - ⚡ **Performance**: Optimizado con React 18 y Vite
 
@@ -40,6 +41,7 @@ búsqueda, filtrado, exportación de datos, sistema de auditoría y gestión de 
 
 - **Zustand 5.0.8** - Gestión de estado
 - **React Router DOM 6.22.0** - Enrutamiento
+- **WebSocket** - Comunicación en tiempo real
 
 ### Utilidades
 
@@ -47,13 +49,35 @@ búsqueda, filtrado, exportación de datos, sistema de auditoría y gestión de 
 - **jwt-decode 4.0.0** - Decodificación de JWT
 - **zod 3.22.4** - Validación de esquemas
 
+## 🎮 Cómo Usar la Aplicación
+
+### 1. Crear una Sala
+1. Ve a la página principal
+2. Selecciona la pestaña "Crear Sala"
+3. Ingresa tu nombre y el nombre de la sala
+4. Selecciona tu rol (Votante o Espectador)
+5. Elige el mazo de cartas que prefieras
+6. Haz clic en "Crear Sala"
+
+### 2. Unirse a una Sala Existente
+1. Ve a la página principal
+2. Selecciona la pestaña "Unirse a Sala"
+3. Ingresa tu nombre y el ID de la sala
+4. Selecciona tu rol (Votante o Espectador)
+5. Haz clic en "Unirse a la Sala"
+
+### 3. Jugar Planning Poker
+1. **Votar**: Los votantes pueden seleccionar una carta haciendo clic en ella
+2. **Revelar**: Una vez que todos hayan votado, haz clic en "Revelar Votos"
+3. **Nueva Ronda**: Después de revisar los resultados, haz clic en "Nueva Ronda"
+
 ## 🚀 Instalación y Configuración
 
 ### Prerrequisitos
 
 - **Node.js** >= 18.0.0
 - **npm** >= 8.0.0 o **pnpm** >= 7.0.0
-- **Backend API** ejecutándose en puerto 3001
+- **Backend WebSocket** ejecutándose en el servidor configurado
 
 ### 1. Clonar el Repositorio
 
