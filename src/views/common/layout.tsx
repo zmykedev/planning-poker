@@ -5,7 +5,7 @@ const Layout = () => {
   const { currentUser } = usePlanningPokerStore();
 
   if (!currentUser) {
-    return <Navigate to='auth/register' replace />;
+    return <Navigate to='/register' replace />;
   }
 
   return (
