@@ -2,7 +2,6 @@ import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router';
 import { useWebSocketStore } from '../store/websocketStore';
 import { ParticipantsTable } from '../components/ParticipantsTable';
-import { SessionControls } from '../components/SessionControls';
 import { PokerCard } from '../components/PokerCard';
 import { Card, Space, Typography, Alert, Spin, Button } from 'antd';
 import { UserOutlined, DisconnectOutlined } from '@ant-design/icons';
@@ -33,6 +32,14 @@ export default function Main() {
     }
   }, [currentUser, navigate]);
 
+  // Sincronizar selectedCard con el voto del usuario actual
+  useEffect(() => {
+    if (currentUser?.vote !== undefined) {
+      setSelectedCard(currentUser.vote);
+    }
+  }, [currentUser?.vote]);
+
+
   // Disconnect on unmount
   useEffect(() => {
     return () => {
@@ -41,7 +48,9 @@ export default function Main() {
   }, [disconnect]);
 
   const handleCardClick = (value: number | string) => {
-    if (revealed || currentUser?.role !== 'voter') return;
+    if (revealed || currentUser?.role !== 'voter') {
+      return;
+    }
     
     setSelectedCard(value);
     vote(value);
@@ -102,6 +111,8 @@ export default function Main() {
                 <Text type="secondary">Sala: {roomId}</Text>
                 <Text type="secondary">•</Text>
                 <Text type="secondary">Rol: {currentUser.role === 'voter' ? 'Votante' : 'Espectador'}</Text>
+                <Text type="secondary">•</Text>
+                <Text type="secondary">Voto: {currentUser.vote ?? 'Sin votar'}</Text>
               </Space>
             </div>
             <Button 
@@ -134,9 +145,19 @@ export default function Main() {
             <Text type="secondary">
               {revealed 
                 ? 'Los votos han sido revelados. Puedes iniciar una nueva ronda.'
-                : 'Los participantes están votando. Espera a que todos voten para revelar.'
+                : currentUser.role === 'voter' 
+                  ? currentUser.vote 
+                    ? 'Has votado. Espera a que todos voten para revelar.'
+                    : 'Selecciona tu voto haciendo clic en una carta.'
+                  : 'Los participantes están votando. Espera a que todos voten para revelar.'
               }
             </Text>
+            {currentUser.role === 'voter' && currentUser.vote && !revealed && (
+              <div className="mt-4">
+                <Text strong>Tu voto: </Text>
+                <Text className="text-2xl font-bold text-blue-600">{currentUser.vote}</Text>
+              </div>
+            )}
           </div>
         </Card>
 
@@ -145,9 +166,17 @@ export default function Main() {
           <ParticipantsTable />
         </Card>
 
+
         {/* Voting Cards - Only for voters */}
         {currentUser.role === 'voter' && cardDeck && (
           <Card title="🃏 Selecciona tu voto" className="mb-6">
+            <div className="mb-4 text-center">
+              <Text type="secondary">
+                Estado: {revealed ? 'Votos revelados' : 'Votando'} | 
+                Tu voto: {currentUser.vote ?? 'Sin votar'} | 
+                Carta seleccionada: {selectedCard ?? 'Ninguna'}
+              </Text>
+            </div>
             <div className="flex flex-wrap justify-center gap-4">
               {cardDeck.values.map((value) => (
                 <PokerCard
@@ -157,6 +186,17 @@ export default function Main() {
                   onClick={() => handleCardClick(value)}
                 />
               ))}
+            </div>
+          </Card>
+        )}
+
+        {/* Show message if cards are not available */}
+        {currentUser.role === 'voter' && !cardDeck && (
+          <Card title="🃏 Cartas no disponibles" className="mb-6">
+            <div className="text-center">
+              <Text type="secondary">
+                Las cartas de votación no están disponibles. Esperando datos del servidor...
+              </Text>
             </div>
           </Card>
         )}
