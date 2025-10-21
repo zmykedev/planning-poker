@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router';
-import { useWebSocketStore } from '../store/websocketStore';
+import { useWebSocketStore, setNavigateFunction } from '../store/websocketStore';
 import type { User, CardDeck } from '@/types/session';
 import { Card, Input, Button, Radio, Space, Typography, Alert } from 'antd';
 import { UserOutlined, TeamOutlined, PlusOutlined } from '@ant-design/icons';
@@ -25,7 +25,8 @@ export const Register = () => {
 
   useEffect(() => {
     connect();
-  }, [connect]);
+    setNavigateFunction(navigate);
+  }, [connect, navigate]);
 
   // Detectar si hay sala en la URL
   const urlParams = new URLSearchParams(window.location.search);
@@ -49,9 +50,7 @@ export const Register = () => {
     setError('');
     setCurrentUser(name, role);
     createRoom(room, name, DEFAULT_DECK);
-
-    // Redirigir inmediatamente a main con el ID generado
-    navigate('/main');
+    // La redirección se manejará cuando llegue la respuesta del backend
   };
 
   const handleJoinRoom = () => {
@@ -71,7 +70,7 @@ export const Register = () => {
     setError('');
     setCurrentUser(name, role);
     joinRoom(room, name);
-    navigate('/main');
+    // La redirección se manejará cuando llegue la respuesta del backend
   };
 
   const handleJoinFromUrl = () => {
@@ -90,7 +89,7 @@ export const Register = () => {
     setError('');
     setCurrentUser(name, role);
     joinRoom(roomFromUrl, name);
-    navigate('/main');
+    // La redirección se manejará cuando llegue la respuesta del backend
   };
 
   return (

@@ -1,6 +1,13 @@
 import { create } from 'zustand';
 import type { User, CardDeck } from '@/types/session';
 
+// Función para navegar (se establecerá desde el componente)
+let navigateFunction: ((path: string) => void) | null = null;
+
+export const setNavigateFunction = (navigate: (path: string) => void) => {
+  navigateFunction = navigate;
+};
+
 // Detectar automáticamente si usar ws o wss basado en el protocolo de la página
 const getWebSocketURL = () => {
   const isSecure = window.location.protocol === 'https:';
@@ -94,6 +101,11 @@ export const useWebSocketStore = create<WebSocketStore>((set, get) => ({
               });
 
               console.log('Room state updated with backend ID:', roomId);
+              
+              // Navegar automáticamente a main cuando se une exitosamente
+              if (navigateFunction) {
+                navigateFunction('/main');
+              }
               break;
             }
 
@@ -158,12 +170,6 @@ export const useWebSocketStore = create<WebSocketStore>((set, get) => ({
   createRoom: (roomName, userName, cardDeck) => {
     const { socket } = get();
 
-    // Inicializar el cardDeck localmente para mostrar las cartas inmediatamente
-    set({
-      cardDeck,
-      revealed: false,
-    });
-
     if (!socket) {
       console.log('Cannot create room: socket not available');
       return;
@@ -184,13 +190,12 @@ export const useWebSocketStore = create<WebSocketStore>((set, get) => ({
   joinRoom: (roomId, userName) => {
     const { socket } = get();
 
-    console.log('Attempting to join room:', roomId);
-
     if (!socket) {
       console.log('Cannot join room: socket not available');
       return;
     }
 
+    console.log('Attempting to join room:', roomId);
     const message = {
       type: 'room:join',
       roomId,
@@ -202,7 +207,7 @@ export const useWebSocketStore = create<WebSocketStore>((set, get) => ({
   },
 
   vote: (value) => {
-    const { socket, currentUser, roomId } = get();
+    const { socket, currentUser } = get();
     if (!currentUser) {
       console.log('Cannot vote: currentUser not available');
       return;
@@ -213,49 +218,45 @@ export const useWebSocketStore = create<WebSocketStore>((set, get) => ({
       return;
     }
 
-    const message = {
-      type: 'user:vote',
-      roomId,
-      userId: currentUser.id,
-      vote: value,
-    };
-
-    console.log('Sending vote:', message);
-    socket.send(JSON.stringify(message));
+    console.log('Sending vote:', value);
+    socket.send(
+      JSON.stringify({
+        type: 'user:vote',
+        vote: value,
+      }),
+    );
   },
 
   reveal: () => {
-    const { socket, roomId } = get();
+    const { socket } = get();
 
     if (!socket) {
       console.log('Cannot reveal: socket not available');
       return;
     }
 
-    const message = {
-      type: 'room:reveal',
-      roomId,
-    };
-
-    console.log('Sending reveal request:', message);
-    socket.send(JSON.stringify(message));
+    console.log('Sending reveal request');
+    socket.send(
+      JSON.stringify({
+        type: 'room:reveal',
+      }),
+    );
   },
 
   reset: () => {
-    const { socket, roomId } = get();
+    const { socket } = get();
 
     if (!socket) {
       console.log('Cannot reset: socket not available');
       return;
     }
 
-    const message = {
-      type: 'room:reset',
-      roomId,
-    };
-
-    console.log('Sending reset request:', message);
-    socket.send(JSON.stringify(message));
+    console.log('Sending reset request');
+    socket.send(
+      JSON.stringify({
+        type: 'room:reset',
+      }),
+    );
   },
 
   setCurrentUser: (name, role) => {
