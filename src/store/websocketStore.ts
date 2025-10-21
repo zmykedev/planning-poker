@@ -69,6 +69,8 @@ export const useWebSocketStore = create<WebSocketStore>((set, get) => ({
         try {
           const data = JSON.parse(event.data);
 
+          console.log('Data received:', data);
+
           switch (data.type) {
             case 'room:created':
             case 'room:joined': {
@@ -164,21 +166,6 @@ export const useWebSocketStore = create<WebSocketStore>((set, get) => ({
 
     if (!socket) {
       console.log('Cannot create room: socket not available');
-      // Fallback: crear sala localmente solo si no hay conexión
-      const fallbackRoomId = Math.random().toString(36).substr(2, 9).toUpperCase();
-      set({
-        roomId: fallbackRoomId,
-        players: [
-          {
-            id: Math.random().toString(36).substr(2, 9),
-            name: userName,
-            vote: null,
-            role: 'voter',
-            isReady: true,
-          },
-        ],
-      });
-      console.log('Room created locally (no socket):', fallbackRoomId);
       return;
     }
 
@@ -192,39 +179,15 @@ export const useWebSocketStore = create<WebSocketStore>((set, get) => ({
 
     socket.send(JSON.stringify(message));
     console.log('Room creation message sent:', message);
-
-    // Fallback: si no hay respuesta del servidor en 5 segundos, crear sala localmente
-    setTimeout(() => {
-      const { roomId } = get();
-      if (!roomId) {
-        console.log('No server response after 5 seconds, creating room locally');
-        const fallbackRoomId = Math.random().toString(36).substr(2, 9).toUpperCase();
-        set({
-          roomId: fallbackRoomId,
-          players: [
-            {
-              id: Math.random().toString(36).substr(2, 9),
-              name: userName,
-              vote: null,
-              role: 'voter',
-              isReady: true,
-            },
-          ],
-        });
-        console.log('Room created locally (timeout):', fallbackRoomId);
-      }
-    }, 5000);
   },
 
   joinRoom: (roomId, userName) => {
     const { socket } = get();
 
-    // Establecer la sala inmediatamente en el estado local
-    set({ roomId });
     console.log('Attempting to join room:', roomId);
 
     if (!socket) {
-      console.log('Cannot join room: socket not available, but room ID set locally');
+      console.log('Cannot join room: socket not available');
       return;
     }
 
@@ -239,55 +202,60 @@ export const useWebSocketStore = create<WebSocketStore>((set, get) => ({
   },
 
   vote: (value) => {
-    const { socket, currentUser } = get();
+    const { socket, currentUser, roomId } = get();
     if (!currentUser) {
       console.log('Cannot vote: currentUser not available');
       return;
     }
 
-    // Actualizar voto localmente
-    const updatedUser = { ...currentUser, vote: value };
-    set({ currentUser: updatedUser });
-
-    // Enviar al servidor
-    if (socket) {
-      socket.send(
-        JSON.stringify({
-          type: 'user:vote',
-          vote: value,
-        }),
-      );
+    if (!socket) {
+      console.log('Cannot vote: socket not available');
+      return;
     }
+
+    const message = {
+      type: 'user:vote',
+      roomId,
+      userId: currentUser.id,
+      vote: value,
+    };
+
+    console.log('Sending vote:', message);
+    socket.send(JSON.stringify(message));
   },
 
   reveal: () => {
-    const { socket } = get();
-    set({ revealed: true });
+    const { socket, roomId } = get();
 
-    if (socket) {
-      socket.send(
-        JSON.stringify({
-          type: 'room:reveal',
-        }),
-      );
+    if (!socket) {
+      console.log('Cannot reveal: socket not available');
+      return;
     }
+
+    const message = {
+      type: 'room:reveal',
+      roomId,
+    };
+
+    console.log('Sending reveal request:', message);
+    socket.send(JSON.stringify(message));
   },
 
   reset: () => {
-    const { socket, currentUser } = get();
-    set({ revealed: false });
+    const { socket, roomId } = get();
 
-    if (currentUser) {
-      set({ currentUser: { ...currentUser, vote: null } });
+    if (!socket) {
+      console.log('Cannot reset: socket not available');
+      return;
     }
 
-    if (socket) {
-      socket.send(
-        JSON.stringify({
-          type: 'room:reset',
-        }),
-      );
-    }
+    const message = {
+      type: 'room:reset',
+      roomId,
+    };
+
+    console.log('Sending reset request:', message);
+    socket.send(JSON.stringify(message));
   },
 
   setCurrentUser: (name, role) => {
