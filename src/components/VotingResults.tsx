@@ -51,9 +51,15 @@ export const VotingResults = ({ players, revealed, cardDeck }: VotingResultsProp
             {average}
           </Title>
         </Card>
-        <Card className='text-center bg-green-50 border-green-200'>
-          <Text type='secondary'>Más Común</Text>
-          <Title level={3} className='text-green-900'>
+        <Card
+          className='text-center border-0'
+          style={{
+            backgroundColor: 'var(--color-green-20)',
+            border: '1px solid var(--color-green-50)',
+          }}
+        >
+          <Text style={{ color: 'var(--color-green)' }}>Más Común</Text>
+          <Title level={3} style={{ color: 'var(--color-green)' }}>
             {mostCommon.join(', ')}
           </Title>
         </Card>
@@ -73,13 +79,13 @@ export const VotingResults = ({ players, revealed, cardDeck }: VotingResultsProp
             const percentage = (count / votes.length) * 100;
             return (
               <div key={vote} className='flex items-center space-x-3'>
-                <Text strong className='w-16'>
+                <Text strong className='w-16' style={{ color: 'var(--color-blue)' }}>
                   {vote}
                 </Text>
                 <Progress
                   percent={percentage}
                   showInfo={false}
-                  strokeColor='#1890ff'
+                  strokeColor='var(--color-green)'
                   className='flex-1'
                 />
                 <Text>

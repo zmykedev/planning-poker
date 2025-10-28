@@ -96,7 +96,7 @@ export const WebSocketProvider: React.FC<WebSocketProviderProps> = ({ children }
     if (room && currentUserName && currentUserId && room.ownerId === currentUserId) {
       // Si somos el owner pero tenemos un currentUserName, significa que alguien se unió
       // Buscar el último usuario agregado que no sea el owner
-      const nonOwnerUsers = room.users.filter(u => u.id !== room.ownerId);
+      const nonOwnerUsers = room.users.filter((u) => u.id !== room.ownerId);
       if (nonOwnerUsers.length > 0) {
         const lastUser = nonOwnerUsers[nonOwnerUsers.length - 1];
         console.log('🔍 Usuario se unió a la sala:', lastUser);
@@ -104,13 +104,13 @@ export const WebSocketProvider: React.FC<WebSocketProviderProps> = ({ children }
       }
     } else if (room && currentUserName && !currentUserId) {
       // Si no tenemos currentUserId pero tenemos currentUserName, buscar nuestro usuario
-      console.log('🔍 Buscando usuario en useEffect:', { 
-        currentUserName, 
-        users: room.users 
+      console.log('🔍 Buscando usuario en useEffect:', {
+        currentUserName,
+        users: room.users,
       });
-      let user = room.users.find(u => u.name === currentUserName);
+      let user = room.users.find((u) => u.name === currentUserName);
       if (!user) {
-        user = room.users.find(u => u.name && u.name.includes(currentUserName));
+        user = room.users.find((u) => u.name && u.name.includes(currentUserName));
       }
       if (!user && room.users.length > 0) {
         user = room.users[room.users.length - 1];

@@ -12,15 +12,22 @@ export const ConnectionStatus = ({ connected }: ConnectionStatusProps) => {
     <div className='flex items-center justify-center gap-2 min-w-[120px]'>
       {connected ? (
         <>
-          <div className='size-4 bg-green-500 rounded-full animate-pulse'></div>
-          <Text className='text-green-600 font-medium'>Conectado</Text>
+          <div
+            className='size-4 rounded-full animate-pulse'
+            style={{ backgroundColor: 'var(--color-green)' }}
+          ></div>
+          <Text className='font-medium' style={{ color: 'var(--color-green)' }}>
+            Conectado
+          </Text>
         </>
       ) : (
         <>
-          <div className='flex items-center justify-center '>
-            <Ripples size='20' speed='1.75' color='#3b82f6' />
+          <div className='flex items-center justify-center'>
+            <Ripples size='20' speed='1.75' color='var(--color-blue)' />
           </div>
-          <Text className='text-blue-600 font-medium'>Conectando</Text>
+          <Text className='font-medium' style={{ color: 'var(--color-blue)' }}>
+            Conectando
+          </Text>
         </>
       )}
     </div>

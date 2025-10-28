@@ -512,11 +512,21 @@ export function App() {
             </div>
 
             {selectedCard !== null && !room.revealed && (
-              <div className='mt-3 p-3 bg-gradient-to-r from-green-500/20 to-emerald-500/20 border border-green-500/30 rounded-lg'>
+              <div
+                className='mt-3 p-3 rounded-lg'
+                style={{
+                  background:
+                    'linear-gradient(135deg, var(--color-green-20) 0%, var(--color-yellow-20) 100%)',
+                  border: '1px solid var(--color-green-50)',
+                }}
+              >
                 <div className='flex items-center justify-center space-x-2'>
                   <span className='text-lg'>✅</span>
-                  <p className='text-white text-center text-sm'>
-                    Has votado: <strong className='text-lg text-green-400'>{selectedCard}</strong>
+                  <p className='text-center text-sm' style={{ color: 'var(--color-yellow)' }}>
+                    Has votado:{' '}
+                    <strong className='text-lg' style={{ color: 'var(--color-green)' }}>
+                      {selectedCard}
+                    </strong>
                   </p>
                 </div>
               </div>
@@ -543,14 +553,20 @@ export function App() {
 
         {/* Notifications */}
         {!room.revealed && allVoted && isModerator && (
-          <div className='fixed bottom-8 right-8 bg-green-500 text-white px-6 py-4 rounded-lg shadow-2xl animate-bounce z-50'>
+          <div
+            className='fixed bottom-8 right-8 text-white px-6 py-4 rounded-lg shadow-2xl animate-bounce z-50'
+            style={{ backgroundColor: 'var(--color-green)' }}
+          >
             <p className='font-semibold'>✓ ¡Todos han votado!</p>
             <p className='text-sm'>Puedes revelar los resultados</p>
           </div>
         )}
 
         {!room.revealed && allVoted && !isModerator && (
-          <div className='fixed bottom-8 right-8 bg-blue-500 text-white px-6 py-4 rounded-lg shadow-2xl z-50'>
+          <div
+            className='fixed bottom-8 right-8 text-white px-6 py-4 rounded-lg shadow-2xl z-50'
+            style={{ backgroundColor: 'var(--color-blue)' }}
+          >
             <p className='font-semibold'>⏳ Esperando al moderador</p>
             <p className='text-sm'>Todos han votado</p>
           </div>
