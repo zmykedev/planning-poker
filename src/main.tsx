@@ -1,13 +1,13 @@
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import './index.css';
-import { BrowserRouter } from 'react-router';
-import { Routes } from '@/routes/routes';
+import { App } from './App';
+import { WebSocketProvider } from './contexts/WebSocketContext';
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
-    <BrowserRouter>
-      <Routes />
-    </BrowserRouter>
+    <WebSocketProvider>
+      <App />
+    </WebSocketProvider>
   </StrictMode>,
 );

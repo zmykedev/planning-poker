@@ -4,14 +4,16 @@ interface PokerCardProps {
   value: number | string;
   isSelected?: boolean;
   onClick: () => void;
+  revealed?: boolean;
+  disabled?: boolean;
 }
 
-export const PokerCard = ({ value, isSelected, onClick }: PokerCardProps) => (
+export const PokerCard = ({ value, isSelected, onClick, revealed, disabled }: PokerCardProps) => (
   <Card
-    hoverable
+    hoverable={!disabled}
     className={`flex items-center justify-center text-2xl font-bold transition-all duration-200 ${
       isSelected ? 'border-blue-500 border-2' : ''
-    }`}
+    } ${disabled ? 'opacity-50 cursor-not-allowed' : ''}`}
     style={{ width: 80, height: 120 }}
     bodyStyle={{
       padding: 0,
@@ -20,7 +22,7 @@ export const PokerCard = ({ value, isSelected, onClick }: PokerCardProps) => (
       justifyContent: 'center',
       height: '100%',
     }}
-    onClick={onClick}
+    onClick={disabled ? undefined : onClick}
   >
     {value}
   </Card>

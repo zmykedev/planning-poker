@@ -1,20 +1,21 @@
 # 🃏 Planning Poker App
 
-Aplicación de Planning Poker para estimación colaborativa de historias de usuario construida con React,
-TypeScript, Ant Design, Tailwind CSS y WebSocket para comunicación en tiempo real.
+Aplicación de Planning Poker para estimación colaborativa de historias de usuario construida con
+React, TypeScript, Ant Design, Tailwind CSS y WebSocket para comunicación en tiempo real.
 
 ## 🎯 Descripción General
 
 Planning Poker App es una aplicación web moderna que permite a los equipos de desarrollo realizar
-estimaciones colaborativas de historias de usuario usando la metodología Planning Poker. La aplicación
-incluye funcionalidades como salas en tiempo real, diferentes mazos de cartas, roles de usuario y
-revelación de votos.
+estimaciones colaborativas de historias de usuario usando la metodología Planning Poker. La
+aplicación incluye funcionalidades como salas en tiempo real, diferentes mazos de cartas, roles de
+usuario y revelación de votos.
 
 ## ✨ Características Principales
 
 - 🎨 **Interfaz Moderna**: Diseño responsivo con Ant Design y Tailwind CSS
 - 🔌 **WebSocket en Tiempo Real**: Comunicación instantánea entre participantes
-- 🃏 **Múltiples Mazos de Cartas**: Fibonacci, Fibonacci Modificado, Potencias de 2, Tallas de Camiseta, Horas
+- 🃏 **Múltiples Mazos de Cartas**: Fibonacci, Fibonacci Modificado, Potencias de 2, Tallas de
+  Camiseta, Horas
 - 👥 **Roles de Usuario**: Votantes y Espectadores
 - 🏠 **Salas Colaborativas**: Crear o unirse a salas existentes
 - 🎯 **Revelación de Votos**: Sistema de revelación controlada
@@ -52,6 +53,7 @@ revelación de votos.
 ## 🎮 Cómo Usar la Aplicación
 
 ### 1. Crear una Sala
+
 1. Ve a la página principal
 2. Selecciona la pestaña "Crear Sala"
 3. Ingresa tu nombre y el nombre de la sala
@@ -60,6 +62,7 @@ revelación de votos.
 6. Haz clic en "Crear Sala"
 
 ### 2. Unirse a una Sala Existente
+
 1. Ve a la página principal
 2. Selecciona la pestaña "Unirse a Sala"
 3. Ingresa tu nombre y el ID de la sala
@@ -67,6 +70,7 @@ revelación de votos.
 5. Haz clic en "Unirse a la Sala"
 
 ### 3. Jugar Planning Poker
+
 1. **Votar**: Los votantes pueden seleccionar una carta haciendo clic en ella
 2. **Revelar**: Una vez que todos hayan votado, haz clic en "Revelar Votos"
 3. **Nueva Ronda**: Después de revisar los resultados, haz clic en "Nueva Ronda"
