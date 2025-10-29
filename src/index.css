@@ -31,46 +31,26 @@
 
 @layer base {
   html {
-    background: linear-gradient(
-      135deg,
-      var(--color-purple) 0%,
-      var(--color-blue) 50%,
-      var(--color-green) 100%
-    );
-    color: white;
+    background: #f8fafc;
+    color: #1e293b;
     min-height: 100vh;
   }
 
   body {
-    background: linear-gradient(
-      135deg,
-      var(--color-purple) 0%,
-      var(--color-blue) 50%,
-      var(--color-green) 100%
-    );
-    color: white;
+    background: #f8fafc;
+    color: #1e293b;
     min-height: 100vh;
   }
 
-  /* Tema oscuro por defecto */
+  /* Tema claro por defecto */
   .dark {
-    background: linear-gradient(
-      135deg,
-      var(--color-purple) 0%,
-      var(--color-blue) 50%,
-      var(--color-green) 100%
-    );
-    color: white;
+    background: #f8fafc;
+    color: #1e293b;
   }
 
   .dark body {
-    background: linear-gradient(
-      135deg,
-      var(--color-purple) 0%,
-      var(--color-blue) 50%,
-      var(--color-green) 100%
-    );
-    color: white;
+    background: #f8fafc;
+    color: #1e293b;
   }
 }
 

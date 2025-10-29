@@ -6,10 +6,10 @@ const { Title, Text } = Typography;
 interface VotingResultsProps {
   players: User[];
   revealed: boolean;
-  cardDeck?: CardDeck;
+  cardDeck: CardDeck;
 }
 
-export const VotingResults = ({ players, revealed, cardDeck }: VotingResultsProps) => {
+export const VotingResults = ({ players, revealed }: VotingResultsProps) => {
   if (!revealed) return null;
 
   const votes = players.filter((u) => u.vote !== null).map((u) => u.vote as string | number);

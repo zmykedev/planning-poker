@@ -1,15 +1,13 @@
-// Servicio WebSocket real para conectarse al backend
+// Servicio Socket.IO para conectarse al backend
 
+import { io, Socket } from 'socket.io-client';
 import type { CardValue, WebSocketMessage, CardDeck } from '../types';
 
 type MessageHandler = (message: WebSocketMessage) => void;
 
-class WebSocketService {
-  private ws: WebSocket | null = null;
+class SocketIOService {
+  private socket: Socket | null = null;
   private handlers: Set<MessageHandler> = new Set();
-  private reconnectAttempts = 0;
-  private maxReconnectAttempts = 5;
-  private reconnectDelay = 2000;
   private wsUrl: string;
 
   constructor(url: string) {
@@ -19,61 +17,51 @@ class WebSocketService {
   connect(): Promise<void> {
     return new Promise((resolve, reject) => {
       try {
-        this.ws = new WebSocket(this.wsUrl);
+        console.log('🔌 Conectando a Socket.IO:', this.wsUrl);
 
-        this.ws.onopen = () => {
-          console.log('✅ Conectado al servidor WebSocket');
-          this.reconnectAttempts = 0;
+        // Crear conexión Socket.IO
+        this.socket = io(this.wsUrl, {
+          transports: ['websocket', 'polling'],
+          reconnection: true,
+          reconnectionAttempts: 5,
+          reconnectionDelay: 2000,
+        });
+
+        this.socket.on('connect', () => {
+          console.log('✅ Conectado a Socket.IO');
+          console.log('🔗 Socket ID:', this.socket?.id);
           resolve();
-        };
+        });
 
-        this.ws.onmessage = (event) => {
-          console.log('📨 Mensaje recibido del servidor:', event.data);
-          try {
-            const message = JSON.parse(event.data) as WebSocketMessage;
-            console.log('📨 Mensaje parseado:', message);
-            this.handlers.forEach((handler) => handler(message));
-          } catch (error) {
-            console.error('Error parseando mensaje:', error);
-          }
-        };
+        // Escuchar todos los eventos del servidor
+        this.socket.onAny((eventName, data) => {
+          console.log('📨 Evento recibido:', eventName, data);
 
-        this.ws.onclose = () => {
-          console.log('❌ Desconectado del servidor WebSocket');
-          this.attemptReconnect();
-        };
+          // Convertir a formato WebSocketMessage
+          const message: WebSocketMessage = {
+            type: eventName as WebSocketMessage['type'],
+            ...data,
+          };
 
-        this.ws.onerror = (error) => {
-          console.error('❌ Error WebSocket:', error);
+          this.handlers.forEach((handler) => handler(message));
+        });
+
+        this.socket.on('disconnect', (reason) => {
+          console.log('❌ Desconectado de Socket.IO:', reason);
+        });
+
+        this.socket.on('connect_error', (error) => {
+          console.error('❌ Error de conexión Socket.IO:', error);
           reject(error);
-        };
+        });
+
+        this.socket.on('error', (error) => {
+          console.error('❌ Error Socket.IO:', error);
+        });
       } catch (error) {
         reject(error);
       }
     });
-  }
-
-  private attemptReconnect(): void {
-    if (this.reconnectAttempts < this.maxReconnectAttempts) {
-      this.reconnectAttempts++;
-      console.log(
-        `🔄 Intentando reconectar (${this.reconnectAttempts}/${this.maxReconnectAttempts})...`,
-      );
-
-      setTimeout(() => {
-        this.connect().catch((err) => {
-          console.error('Error al reconectar:', err);
-        });
-      }, this.reconnectDelay * this.reconnectAttempts);
-    } else {
-      console.error('❌ No se pudo reconectar al servidor');
-      this.handlers.forEach((handler) =>
-        handler({
-          type: 'room:error',
-          message: 'No se pudo conectar al servidor. Por favor, recarga la página.',
-        }),
-      );
-    }
   }
 
   subscribe(handler: MessageHandler): () => void {
@@ -81,77 +69,76 @@ class WebSocketService {
     return () => this.handlers.delete(handler);
   }
 
-  private send(message: Record<string, unknown>): void {
-    console.log('📤 Intentando enviar:', message);
-    console.log('🔌 WebSocket estado:', this.ws?.readyState);
-    if (this.ws && this.ws.readyState === WebSocket.OPEN) {
-      console.log('✅ Enviando mensaje al servidor');
-      this.ws.send(JSON.stringify(message));
+  createRoom(roomName: string, userName: string, cardDeck: CardDeck): void {
+    console.log('📤 Creando sala:', { roomName, userName, cardDeck });
+    if (this.socket?.connected) {
+      this.socket.emit('room:create', {
+        roomName,
+        ownerName: userName,
+        cards: cardDeck.values,
+      });
     } else {
-      console.error('❌ WebSocket no está conectado');
-      this.handlers.forEach((handler) =>
-        handler({
-          type: 'room:error',
-          message: 'No hay conexión con el servidor',
-        }),
-      );
+      console.error('❌ Socket.IO no está conectado');
     }
   }
 
-  createRoom(roomName: string, userName: string, cardDeck: CardDeck): void {
-    console.log('📤 Enviando createRoom:', { roomName, userName, cardDeck });
-    this.send({
-      type: 'room:create',
-      roomName,
-      userName,
-      cardDeck,
-    });
-  }
-
   joinRoom(roomId: string, userName: string): void {
-    this.send({
-      type: 'room:join',
-      roomId,
-      userName,
-    });
+    console.log('📤 Uniéndose a sala:', { roomId, userName });
+    if (this.socket?.connected) {
+      this.socket.emit('room:join', {
+        roomId,
+        userName,
+      });
+    } else {
+      console.error('❌ Socket.IO no está conectado');
+    }
   }
 
   vote(vote: CardValue): void {
-    console.log('🗳️ Enviando voto al servidor:', vote);
-    this.send({
-      type: 'user:vote',
-      vote,
-    });
+    console.log('🗳️ Enviando voto:', { vote });
+    if (this.socket?.connected) {
+      this.socket.emit('user:vote', {
+        vote,
+      });
+    } else {
+      console.error('❌ Socket.IO no está conectado');
+    }
   }
 
   revealVotes(): void {
-    this.send({
-      type: 'room:reveal',
-    });
+    console.log('👁️ Revelando votos');
+    if (this.socket?.connected) {
+      this.socket.emit('room:reveal');
+    } else {
+      console.error('❌ Socket.IO no está conectado');
+    }
   }
 
   resetVoting(): void {
-    this.send({
-      type: 'room:reset',
-    });
+    console.log('🔄 Reiniciando votación');
+    if (this.socket?.connected) {
+      this.socket.emit('room:reset');
+    } else {
+      console.error('❌ Socket.IO no está conectado');
+    }
   }
 
   disconnect(): void {
-    if (this.ws) {
-      this.ws.close();
-      this.ws = null;
+    if (this.socket) {
+      this.socket.disconnect();
+      this.socket = null;
+      console.log('👋 Desconectado de Socket.IO');
     }
   }
 
   isConnected(): boolean {
-    return this.ws !== null && this.ws.readyState === WebSocket.OPEN;
+    return this.socket?.connected || false;
   }
 }
 
-const getWebSocketURL = () => {
-  const isSecure = window.location.protocol === 'https:';
-  const protocol = isSecure ? 'wss:' : 'ws:';
-  return `${protocol}//planning-poker-backend-production-98d3.up.railway.app`;
+const getSocketIOURL = () => {
+  // Usar el backend local
+  return 'http://localhost:3001';
 };
 
-export const websocketService = new WebSocketService(getWebSocketURL());
+export const websocketService = new SocketIOService(getSocketIOURL());

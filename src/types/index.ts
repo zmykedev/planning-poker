@@ -2,11 +2,10 @@ export type CardValue = string | number;
 
 export interface User {
   id: string;
-  name?: string; // Opcional porque el servidor no siempre lo envía
+  name: string;
   isReady: boolean;
   vote: CardValue | null;
-  isModerator?: boolean; // Opcional, se calculará basado en ownerId
-  spectator?: boolean; // Campo que envía el servidor
+  spectator: boolean;
 }
 
 export interface Room {
@@ -14,9 +13,9 @@ export interface Room {
   name: string;
   users: User[];
   revealed: boolean;
-  cardDeck?: CardDeck; // Opcional porque el servidor no lo envía
+  cards: CardValue[];
   createdAt: number;
-  ownerId?: string; // Campo que envía el servidor
+  ownerId: string;
 }
 
 export interface CardDeck {
@@ -50,10 +49,9 @@ export const CARD_DECKS: CardDeck[] = [
 
 export type WebSocketMessage =
   | { type: 'room:created'; room: Room; ownerId: string }
-  | { type: 'room:joined'; room: Room; ownerId: string }
+  | { type: 'room:joined'; room: Room; userId: string }
   | { type: 'room:updated'; room: Room }
   | { type: 'room:error'; message: string }
   | { type: 'user:voted'; userId: string; vote: CardValue }
   | { type: 'room:revealed' }
-  | { type: 'room:reset' }
-  | { type: 'error'; message: string };
+  | { type: 'room:reset' };
