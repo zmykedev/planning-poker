@@ -29,22 +29,63 @@ export function PlanningRoom({ room, currentUserId, onVote, onReveal, onReset }:
     values: room.cards,
   };
 
-  const otherPlayers = room.users.filter((user) => user.id !== currentUserId);
+  // Distribuir todos los jugadores alrededor de la mesa
+  const distributePlayersAroundTable = (players: Room['users']) => {
+    const total = players.length;
+    const top: Room['users'] = [];
+    const bottom: Room['users'] = [];
+    const left: Room['users'] = [];
+    const right: Room['users'] = [];
 
-  const renderPlayerCard = (user: Room['users'][number], size: 'sm' | 'lg' = 'sm') => {
+    if (total === 1) {
+      bottom.push(players[0]);
+    } else if (total === 2) {
+      top.push(players[0]);
+      bottom.push(players[1]);
+    } else if (total === 3) {
+      top.push(players[0]);
+      bottom.push(players[1], players[2]);
+    } else if (total === 4) {
+      top.push(players[0], players[1]);
+      bottom.push(players[2], players[3]);
+    } else if (total <= 6) {
+      const perSide = Math.ceil(total / 2);
+      top.push(...players.slice(0, perSide));
+      bottom.push(...players.slice(perSide));
+    } else if (total <= 10) {
+      const perTopBottom = Math.floor(total / 3);
+      const remaining = total - perTopBottom * 2;
+      const perSide = Math.ceil(remaining / 2);
+      
+      top.push(...players.slice(0, perTopBottom));
+      left.push(...players.slice(perTopBottom, perTopBottom + perSide));
+      right.push(...players.slice(perTopBottom + perSide, perTopBottom + remaining));
+      bottom.push(...players.slice(perTopBottom + remaining));
+    } else {
+      const perSide = Math.ceil(total / 4);
+      top.push(...players.slice(0, perSide));
+      right.push(...players.slice(perSide, perSide * 2));
+      bottom.push(...players.slice(perSide * 2, perSide * 3));
+      left.push(...players.slice(perSide * 3));
+    }
+
+    return { top, bottom, left, right };
+  };
+
+  const playersDistribution = distributePlayersAroundTable(room.users);
+
+  const renderPlayerCard = (user: Room['users'][number]) => {
     if (!user) {
       return null;
     }
 
     const showHiddenPattern = user.vote !== null && !room.revealed;
     const isCurrent = user.id === currentUserId;
-    const cardSizeClasses = size === 'lg' ? 'w-28 h-40 rounded-3xl' : 'w-16 h-24 rounded-2xl';
-    const valueTextSize = size === 'lg' ? 'text-3xl' : 'text-xl';
 
     return (
-      <div key={user.id} className='flex flex-col items-center gap-3'>
+      <div key={user.id} className='flex flex-col items-center gap-2'>
         <div
-          className={`relative ${cardSizeClasses} border-2 shadow-md transition-all duration-500 transform`}
+          className={`relative w-14 h-20 rounded-xl border-2 shadow-md transition-all duration-500 transform`}
           style={{
             transformStyle: 'preserve-3d',
             transform: room.revealed ? 'rotateY(180deg)' : 'rotateY(0deg)',
@@ -58,17 +99,14 @@ export function PlanningRoom({ room, currentUserId, onVote, onReveal, onReset }:
             {showHiddenPattern ? (
               <span className='sr-only'>Carta cubierta</span>
             ) : (
-              <div className='flex flex-col items-center gap-1'>
-                <div className='text-sm'>?</div>
-                <div className='text-xs text-gray-500'>Esperando</div>
-              </div>
+              <div className='text-lg'>?</div>
             )}
           </div>
 
           <div
-            className={`absolute inset-0 flex items-center justify-center text-blue-600 font-black transition-opacity duration-300 ${
+            className={`absolute inset-0 flex items-center justify-center text-blue-600 font-black text-xl transition-opacity duration-300 ${
               room.revealed ? 'opacity-100' : 'opacity-0'
-            } ${valueTextSize}`}
+            }`}
             style={{
               transform: room.revealed ? 'rotateY(180deg)' : 'rotateY(0deg)',
             }}
@@ -78,14 +116,14 @@ export function PlanningRoom({ room, currentUserId, onVote, onReveal, onReset }:
         </div>
 
         <div
-          className={`flex items-center gap-2 rounded-full px-4 py-2 text-sm font-semibold shadow-sm ${
+          className={`flex items-center gap-1 rounded-full px-3 py-1 text-xs font-semibold shadow-sm ${
             isCurrent
               ? 'bg-blue-500 text-white shadow-md'
               : 'bg-white text-slate-700 border border-blue-100'
           }`}
         >
-          <span className='text-lg'>{user.emoji}</span>
-          <span>{user.name || `Usuario ${user.id.slice(0, 6)}`}</span>
+          <span className='text-sm'>{user.emoji}</span>
+          <span className='max-w-[70px] truncate'>{user.name || `User ${user.id.slice(0, 4)}`}</span>
         </div>
       </div>
     );
@@ -150,128 +188,149 @@ export function PlanningRoom({ room, currentUserId, onVote, onReveal, onReset }:
   }, [revealCountdown, onReveal]);
 
   return (
-    <div className='min-h-screen flex flex-col bg-slate-50 text-slate-900'>
-      <header className='flex items-center justify-between px-8 py-6 border-b border-blue-100 bg-white/70 backdrop-blur'>
-        <div className='flex items-center gap-3'>
-          <div className='flex h-10 w-10 items-center justify-center rounded-xl bg-blue-100 text-blue-600 text-xl font-semibold'>
+    <div className='h-screen flex flex-col bg-slate-50 text-slate-900 overflow-hidden'>
+      {/* Header compacto */}
+      <header className='flex items-center justify-between px-6 py-3 border-b border-blue-100 bg-white/70 backdrop-blur shrink-0'>
+        <div className='flex items-center gap-2'>
+          <div className='flex h-8 w-8 items-center justify-center rounded-lg bg-blue-100 text-blue-600 text-lg font-semibold'>
             🂡
           </div>
-          <div className='flex flex-col'>
-            <span className='text-lg font-semibold'>{room.name}</span>
-            <span className='text-sm text-slate-500'>Planning poker game</span>
-          </div>
+          <span className='text-base font-semibold'>{room.name}</span>
         </div>
 
-        <div className='flex items-center gap-3'>
-          <div className='flex items-center gap-2 rounded-full bg-blue-50 px-4 py-2 text-sm font-semibold text-blue-600 shadow-sm'>
-            <span className='text-lg'>{currentUser?.emoji ?? '🙂'}</span>
-            <span>{currentUser?.name ?? 'Tú'}</span>
-          </div>
-
-          <Button
-            icon={<LinkOutlined />}
-            onClick={handleCopyRoomLink}
-            className='border-blue-400 text-blue-600 hover:bg-blue-50'
-          >
-            Invite players
-          </Button>
-        </div>
+        <Button
+          icon={<LinkOutlined />}
+          size='small'
+          onClick={handleCopyRoomLink}
+          className='border-blue-400 text-blue-600 hover:bg-blue-50'
+        >
+          Invitar
+        </Button>
       </header>
 
-      <main className='flex-1 flex flex-col items-center gap-10 px-6 py-10'>
-        {otherPlayers.length === 0 && (
-          <div className='text-center text-slate-500'>
-            <div className='text-lg font-medium'>Feeling lonely? 🥺</div>
-            <Button type='link' onClick={handleCopyRoomLink} className='font-semibold'>
-              Invite players
-            </Button>
-          </div>
-        )}
-
-        <div className='w-full max-w-lg'>
-          <div className='rounded-3xl bg-blue-50/80 border border-blue-100 px-10 py-12 text-center shadow-inner'>
-            <Text className='text-xl font-semibold text-blue-900'>Pick your cards!</Text>
-          </div>
-        </div>
-
-        {currentUser && (
-          <div className='flex flex-col items-center gap-6'>
-            {renderPlayerCard(currentUser, 'lg')}
-
-            {isModerator && (
-              <>
-                {!room.revealed && allVoted ? (
-                  revealCountdown !== null ? (
-                    <div className='rounded-full bg-blue-600/90 px-6 py-3 text-4xl font-bold text-white shadow-lg'>
-                      {revealCountdown}
-                    </div>
-                  ) : (
-                    <Button
-                      type='primary'
-                      icon={<EyeOutlined />}
-                      onClick={handleRevealClick}
-                      className='bg-blue-600 hover:bg-blue-700 border-blue-600'
-                      size='large'
-                    >
-                      Revelar cartas
-                    </Button>
-                  )
-                ) : null}
-
-                {room.revealed && (
-                  <Button
-                    icon={<ReloadOutlined />}
-                    onClick={onReset}
-                    className='bg-gray-600 hover:bg-gray-700 border-gray-600 text-white'
-                    size='large'
-                  >
-                    Nueva Ronda
-                  </Button>
-                )}
-              </>
-            )}
-          </div>
-        )}
-
-        {otherPlayers.length > 0 && (
-          <div className='w-full max-w-4xl'>
-            <div className='grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6 justify-items-center'>
-              {otherPlayers.map((user) => renderPlayerCard(user))}
+      {/* Main - Mesa con jugadores alrededor */}
+      <main className='flex-1 relative overflow-hidden'>
+        {room.users.length === 0 ? (
+          <div className='absolute inset-0 flex items-center justify-center'>
+            <div className='text-center text-slate-500'>
+              <div className='text-lg font-medium'>¿Te sientes solo? 🥺</div>
+              <Button type='link' onClick={handleCopyRoomLink} className='font-semibold'>
+                Invitar jugadores
+              </Button>
             </div>
           </div>
-        )}
+        ) : (
+          <>
+            {/* Jugadores arriba */}
+            {playersDistribution.top.length > 0 && (
+              <div className='absolute top-4 left-1/2 -translate-x-1/2 flex gap-4'>
+                {playersDistribution.top.map((user) => renderPlayerCard(user))}
+              </div>
+            )}
 
-        {/* {room.revealed && (
-          <div className='w-full max-w-4xl'>
-            <VotingResults players={room.users} revealed={room.revealed} cardDeck={cardDeck} />
-          </div>
-        )} */}
+            {/* Jugadores izquierda */}
+            {playersDistribution.left.length > 0 && (
+              <div className='absolute left-4 top-1/2 -translate-y-1/2 flex flex-col gap-4'>
+                {playersDistribution.left.map((user) => renderPlayerCard(user))}
+              </div>
+            )}
+
+            {/* Jugadores derecha */}
+            {playersDistribution.right.length > 0 && (
+              <div className='absolute right-4 top-1/2 -translate-y-1/2 flex flex-col gap-4'>
+                {playersDistribution.right.map((user) => renderPlayerCard(user))}
+              </div>
+            )}
+
+            {/* Jugadores abajo */}
+            {playersDistribution.bottom.length > 0 && (
+              <div className='absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-4'>
+                {playersDistribution.bottom.map((user) => renderPlayerCard(user))}
+              </div>
+            )}
+
+            {/* Mesa central con controles */}
+            <div className='absolute inset-0 flex items-center justify-center pointer-events-none'>
+              <div className='flex flex-col items-center gap-4 pointer-events-auto'>
+                {/* Mesa/Superficie de juego */}
+                <div className='w-72 h-40 rounded-3xl bg-gradient-to-br from-blue-100 to-blue-50 border-2 border-blue-200 shadow-xl flex items-center justify-center'>
+                  <div className='text-center'>
+                    {!room.revealed && !allVoted && (
+                      <Text className='text-lg font-semibold text-blue-900'>
+                        🎴 Esperando votos...
+                      </Text>
+                    )}
+                    
+                    {/* Botón Revelar */}
+                    {isModerator && !room.revealed && allVoted && revealCountdown === null && (
+                      <Button
+                        type='primary'
+                        icon={<EyeOutlined />}
+                        onClick={handleRevealClick}
+                        className='bg-blue-600 hover:bg-blue-700 border-blue-600'
+                        size='large'
+                      >
+                        Revelar votos
+                      </Button>
+                    )}
+
+                    {/* Contador */}
+                    {revealCountdown !== null && (
+                      <div className='text-6xl font-bold text-blue-600 animate-pulse'>
+                        {revealCountdown}
+                      </div>
+                    )}
+
+                    {/* Votos revelados */}
+                    {room.revealed && !isModerator && (
+                      <Text className='text-lg font-semibold text-blue-900'>
+                        ✨ Votos revelados
+                      </Text>
+                    )}
+
+                    {/* Botón Nueva Ronda */}
+                    {isModerator && room.revealed && (
+                      <Button
+                        icon={<ReloadOutlined />}
+                        onClick={onReset}
+                        className='bg-gray-600 hover:bg-gray-700 border-gray-600 text-white'
+                        size='large'
+                      >
+                        Nueva Ronda
+                      </Button>
+                    )}
+                  </div>
+                </div>
+              </div>
+            </div>
+          </>
+        )}
       </main>
 
-      {currentUser && cardDeck ? (
-        <footer className='border-t border-blue-100 bg-white/80 backdrop-blur px-6 py-6'>
-          <div className='flex justify-center gap-3 flex-wrap'>
+      {/* Footer con cartas - compacto */}
+      {currentUser && cardDeck && (
+        <footer className='border-t border-blue-100 bg-white/80 backdrop-blur px-4 py-3 shrink-0'>
+          <div className='flex justify-center gap-2 flex-wrap max-w-4xl mx-auto'>
             {cardDeck.values.map((value, index) => (
-              <div key={index} className='relative'>
-                <div
-                  className={`
-                    w-16 h-20 rounded-lg border-2 cursor-pointer transition-all duration-200 transform hover:scale-105 flex items-center justify-center
-                    ${
-                      selectedCard === value
-                        ? 'border-blue-500 bg-blue-500 text-white shadow-lg scale-105'
-                        : 'border-blue-400 text-blue-500 bg-white hover:bg-blue-50'
-                    }
-                    ${room.revealed ? 'pointer-events-none opacity-60' : ''}
-                  `}
-                  onClick={() => !room.revealed && handleVote(value)}
-                >
-                  <span className='text-lg font-bold'>{value}</span>
-                </div>
+              <div
+                key={index}
+                className={`
+                  w-12 h-16 rounded-lg border-2 cursor-pointer transition-all duration-200 transform hover:scale-105 flex items-center justify-center
+                  ${
+                    selectedCard === value
+                      ? 'border-blue-500 bg-blue-500 text-white shadow-lg scale-105'
+                      : 'border-blue-400 text-blue-500 bg-white hover:bg-blue-50'
+                  }
+                  ${room.revealed ? 'pointer-events-none opacity-60' : ''}
+                `}
+                onClick={() => !room.revealed && handleVote(value)}
+              >
+                <span className='text-base font-bold'>{value}</span>
               </div>
             ))}
           </div>
         </footer>
-      ) : null}
+      )}
     </div>
   );
 }
