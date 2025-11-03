@@ -3,6 +3,7 @@ export type CardValue = string | number;
 export interface User {
   id: string;
   name: string;
+  emoji: string;
   isReady: boolean;
   vote: CardValue | null;
   spectator: boolean;
