@@ -1,14 +1,15 @@
 import { useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { Card, Space, Typography, Button, Input } from 'antd';
-import { UserOutlined, TeamOutlined } from '@ant-design/icons';
+import { User, Users } from 'lucide-react';
+import { Card } from '../components/ui/Card';
+import { Button } from '../components/ui/Button';
+import { Input } from '../components/ui/Input';
+import { Title, Text } from '../components/ui/Typography';
 import { PlanningRoom } from '../components/PlanningRoom';
 import { ConnectionStatus } from '../components/ConnectionStatus';
 import type { Room, CardValue } from '../types';
 import { EmojiPicker } from '../components/EmojiPicker';
 import { getRandomEmoji } from '../utils/emoji.ts';
-
-const { Title, Text } = Typography;
 
 interface RoomPageProps {
   room: Room | null;
@@ -56,48 +57,62 @@ export function RoomPage({
 
   // Si no hay room o currentUserId, mostrar formulario de unirse
   return (
-    <div className='min-h-screen flex items-center justify-center'>
+    <div
+      className='min-h-screen flex items-center justify-center'
+      style={{
+        background: `linear-gradient(
+          135deg,
+          var(--color-purple-20) 0%,
+          var(--color-blue-20) 25%,
+          var(--color-green-20) 50%,
+          var(--color-yellow-10) 75%,
+          var(--color-orange-10) 100%
+        ), #f8fafc`,
+      }}
+    >
       <div className='w-full max-w-md p-6'>
-        <Card className='shadow-lg border-0 bg-white/90 backdrop-blur-sm'>
+        <Card className='p-6'>
           <div className='text-center mb-6'>
-            <Title level={2} className='mb-2 text-gray-800'>
-              🃏 Unirse a Sala
-            </Title>
+            <Title className='mb-2 text-gray-800'>🃏 Unirse a Sala</Title>
             <div className='flex items-center justify-center mb-2'>
               <ConnectionStatus connected={connected} />
             </div>
           </div>
 
-          <Space direction='vertical' className='w-full' size='large'>
+          <div className='flex flex-col gap-6'>
             <div>
-              <Text strong className='block mb-2'>
-                <TeamOutlined /> Sala: {roomId}
-              </Text>
-              <Text type='secondary' className='block'>
+              <div className='flex items-center gap-2 mb-2'>
+                <Users className='h-4 w-4' />
+                <Text className='font-semibold'>Sala: {roomId}</Text>
+              </div>
+              <Text variant='secondary' className='block'>
                 Ingresa tu nombre para unirte a la sala
               </Text>
             </div>
 
             <div>
-              <Text strong className='block mb-2'>
-                <UserOutlined /> Tu Nombre
-              </Text>
+              <div className='flex items-center gap-2 mb-2'>
+                <User className='h-4 w-4' />
+                <Text className='font-semibold'>Tu Nombre</Text>
+              </div>
               <Input
                 placeholder='John Doe'
                 value={newPlayerName}
                 onChange={(e) => {
                   setNewPlayerName(e.target.value);
                 }}
-                onPressEnter={handleJoin}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') handleJoin();
+                }}
                 className='mb-3'
               />
-              <div className="flex justify-center mt-2">
-              <EmojiPicker  value={selectedEmoji} onSelect={setSelectedEmoji} />
+              <div className='flex justify-center mt-2'>
+                <EmojiPicker value={selectedEmoji} onSelect={setSelectedEmoji} />
               </div>
             </div>
 
             <Button
-              type='primary'
+              variant='primary'
               size='large'
               onClick={handleJoin}
               disabled={!connected || !newPlayerName.trim()}
@@ -106,10 +121,10 @@ export function RoomPage({
               Unirse a la Sala
             </Button>
 
-            <Button onClick={() => navigate('/')} className='w-full'>
+            <Button variant='secondary' onClick={() => navigate('/')} className='w-full'>
               Volver al Inicio
             </Button>
-          </Space>
+          </div>
         </Card>
       </div>
     </div>

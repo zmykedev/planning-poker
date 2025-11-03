@@ -1,10 +1,10 @@
 import { useState, useEffect } from 'react';
-import { Typography, Button, message } from 'antd';
-import { LinkOutlined, EyeOutlined, ReloadOutlined } from '@ant-design/icons';
-import { VotingResults } from './VotingResults';
+import { motion } from 'framer-motion';
+import { Link, Eye, RotateCcw } from 'lucide-react';
+import { Button } from './ui/Button';
+import { Text } from './ui/Typography';
+import { useToast } from '../contexts/ToastContext';
 import type { Room, CardValue } from '../types';
-
-const { Text } = Typography;
 
 interface Props {
   room: Room;
@@ -17,6 +17,7 @@ interface Props {
 export function PlanningRoom({ room, currentUserId, onVote, onReveal, onReset }: Props) {
   const [selectedCard, setSelectedCard] = useState<CardValue | null>(null);
   const [revealCountdown, setRevealCountdown] = useState<number | null>(null);
+  const toast = useToast();
 
   const currentUser = room.users.find((u) => u.id === currentUserId);
   const allVoted = room.users.every((u) => u.vote !== null);
@@ -56,7 +57,7 @@ export function PlanningRoom({ room, currentUserId, onVote, onReveal, onReset }:
       const perTopBottom = Math.floor(total / 3);
       const remaining = total - perTopBottom * 2;
       const perSide = Math.ceil(remaining / 2);
-      
+
       top.push(...players.slice(0, perTopBottom));
       left.push(...players.slice(perTopBottom, perTopBottom + perSide));
       right.push(...players.slice(perTopBottom + perSide, perTopBottom + remaining));
@@ -85,45 +86,61 @@ export function PlanningRoom({ room, currentUserId, onVote, onReveal, onReset }:
     return (
       <div key={user.id} className='flex flex-col items-center gap-2'>
         <div
-          className={`relative w-14 h-20 rounded-xl border-2 shadow-md transition-all duration-500 transform`}
+          className='relative w-16 h-24'
           style={{
             transformStyle: 'preserve-3d',
+            transition: 'transform 0.6s',
             transform: room.revealed ? 'rotateY(180deg)' : 'rotateY(0deg)',
           }}
         >
+          {/* Cara frontal - Carta oculta */}
           <div
-            className={`absolute inset-0 flex items-center justify-center font-bold text-sm transition-opacity duration-300 ${
-              room.revealed ? 'opacity-0' : 'opacity-100'
-            } ${showHiddenPattern ? 'card-back-pattern text-transparent' : 'bg-white text-gray-600'}`}
+            className={`absolute inset-0 flex items-center justify-center font-bold rounded-2xl border-2 ${
+              showHiddenPattern
+                ? 'card-back-pattern border-blue-500'
+                : 'bg-gradient-to-br from-white via-blue-50 to-white border-slate-200'
+            }`}
+            style={{
+              backfaceVisibility: 'hidden',
+              WebkitBackfaceVisibility: 'hidden',
+              boxShadow: showHiddenPattern
+                ? '0 4px 14px 0 rgba(59, 130, 246, 0.3), 0 0 0 1px rgba(59, 130, 246, 0.1)'
+                : '0 4px 14px 0 rgba(0, 0, 0, 0.1), 0 0 0 1px rgba(148, 163, 184, 0.1)',
+            }}
           >
             {showHiddenPattern ? (
               <span className='sr-only'>Carta cubierta</span>
             ) : (
-              <div className='text-lg'>?</div>
+              <div className='text-2xl text-slate-400'>?</div>
             )}
           </div>
 
+          {/* Cara trasera - Carta revelada */}
           <div
-            className={`absolute inset-0 flex items-center justify-center text-blue-600 font-black text-xl transition-opacity duration-300 ${
-              room.revealed ? 'opacity-100' : 'opacity-0'
-            }`}
+            className='absolute inset-0 flex items-center justify-center text-blue-600 font-black text-2xl rounded-2xl border-2 border-blue-400 bg-gradient-to-br from-white via-blue-50 to-white'
             style={{
-              transform: room.revealed ? 'rotateY(180deg)' : 'rotateY(0deg)',
+              backfaceVisibility: 'hidden',
+              WebkitBackfaceVisibility: 'hidden',
+              transform: 'rotateY(180deg)',
+              boxShadow:
+                '0 8px 20px 0 rgba(59, 130, 246, 0.4), 0 0 0 1px rgba(59, 130, 246, 0.2), inset 0 1px 2px 0 rgba(255, 255, 255, 0.8)',
             }}
           >
-            <div>{user.vote ?? '?'}</div>
+            <div className='drop-shadow-sm'>{user.vote ?? '?'}</div>
           </div>
         </div>
 
         <div
-          className={`flex items-center gap-1 rounded-full px-3 py-1 text-xs font-semibold shadow-sm ${
+          className={`flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-semibold transition-all ${
             isCurrent
-              ? 'bg-blue-500 text-white shadow-md'
-              : 'bg-white text-slate-700 border border-blue-100'
+              ? 'bg-gradient-to-r from-blue-500 to-blue-600 text-white shadow-lg shadow-blue-500/30'
+              : 'bg-white text-slate-700 border border-slate-200 shadow-md'
           }`}
         >
-          <span className='text-sm'>{user.emoji}</span>
-          <span className='max-w-[70px] truncate'>{user.name || `User ${user.id.slice(0, 4)}`}</span>
+          <span className='text-base'>{user.emoji}</span>
+          <span className='max-w-[70px] truncate'>
+            {user.name || `User ${user.id.slice(0, 4)}`}
+          </span>
         </div>
       </div>
     );
@@ -136,7 +153,7 @@ export function PlanningRoom({ room, currentUserId, onVote, onReveal, onReset }:
 
   const handleCopyRoomLink = () => {
     if (!room?.id) {
-      message.error('No hay sala activa');
+      toast.error('No hay sala activa');
       return;
     }
 
@@ -146,10 +163,10 @@ export function PlanningRoom({ room, currentUserId, onVote, onReveal, onReset }:
     navigator.clipboard
       .writeText(roomLink)
       .then(() => {
-        message.success('Link copiado al portapapeles');
+        toast.success('Link copiado al portapapeles');
       })
       .catch(() => {
-        message.error('Error al copiar el link');
+        toast.error('Error al copiar el link');
       });
   };
 
@@ -188,7 +205,19 @@ export function PlanningRoom({ room, currentUserId, onVote, onReveal, onReset }:
   }, [revealCountdown, onReveal]);
 
   return (
-    <div className='h-screen flex flex-col bg-slate-50 text-slate-900 overflow-hidden'>
+    <div
+      className='h-screen flex flex-col text-slate-900 overflow-hidden'
+      style={{
+        background: `linear-gradient(
+          135deg,
+          var(--color-purple-20) 0%,
+          var(--color-blue-20) 25%,
+          var(--color-green-20) 50%,
+          var(--color-yellow-10) 75%,
+          var(--color-orange-10) 100%
+        ), #f8fafc`,
+      }}
+    >
       {/* Header compacto */}
       <header className='flex items-center justify-between px-6 py-3 border-b border-blue-100 bg-white/70 backdrop-blur shrink-0'>
         <div className='flex items-center gap-2'>
@@ -199,10 +228,10 @@ export function PlanningRoom({ room, currentUserId, onVote, onReveal, onReset }:
         </div>
 
         <Button
-          icon={<LinkOutlined />}
+          icon={<Link className='h-4 w-4' />}
           size='small'
+          variant='secondary'
           onClick={handleCopyRoomLink}
-          className='border-blue-400 text-blue-600 hover:bg-blue-50'
         >
           Invitar
         </Button>
@@ -214,7 +243,7 @@ export function PlanningRoom({ room, currentUserId, onVote, onReveal, onReset }:
           <div className='absolute inset-0 flex items-center justify-center'>
             <div className='text-center text-slate-500'>
               <div className='text-lg font-medium'>¿Te sientes solo? 🥺</div>
-              <Button type='link' onClick={handleCopyRoomLink} className='font-semibold'>
+              <Button variant='link' onClick={handleCopyRoomLink} className='font-semibold'>
                 Invitar jugadores
               </Button>
             </div>
@@ -253,54 +282,100 @@ export function PlanningRoom({ room, currentUserId, onVote, onReveal, onReset }:
             <div className='absolute inset-0 flex items-center justify-center pointer-events-none'>
               <div className='flex flex-col items-center gap-4 pointer-events-auto'>
                 {/* Mesa/Superficie de juego */}
-                <div className='w-72 h-40 rounded-3xl bg-gradient-to-br from-blue-100 to-blue-50 border-2 border-blue-200 shadow-xl flex items-center justify-center'>
-                  <div className='text-center'>
+                <motion.div
+                  initial={{ scale: 0.9, opacity: 0 }}
+                  animate={{ scale: 1, opacity: 1 }}
+                  transition={{ duration: 0.5, type: 'spring', stiffness: 200 }}
+                  className='relative w-64 h-20 rounded-3xl bg-gradient-to-br from-blue-50 via-white to-blue-100 border-2 border-blue-300 flex items-center justify-center overflow-hidden'
+                  style={{
+                    boxShadow:
+                      '0 20px 60px -10px rgba(59, 130, 246, 0.3), 0 10px 30px -5px rgba(59, 130, 246, 0.2), inset 0 1px 2px rgba(255, 255, 255, 0.8), inset 0 -1px 2px rgba(148, 163, 184, 0.1)',
+                  }}
+                >
+                  {/* Efecto de brillo en el borde */}
+                  <div className='absolute inset-0 rounded-3xl ring-1 ring-inset ring-white/40 pointer-events-none' />
+
+                  <div className='text-center z-10'>
                     {!room.revealed && !allVoted && (
-                      <Text className='text-lg font-semibold text-blue-900'>
-                        🎴 Esperando votos...
-                      </Text>
+                      <motion.div
+                        initial={{ opacity: 0, y: 10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ duration: 0.3 }}
+                      >
+                        <Text className='text-base font-semibold text-blue-900'>
+                          🎴 Esperando votos...
+                        </Text>
+                      </motion.div>
                     )}
-                    
+
                     {/* Botón Revelar */}
                     {isModerator && !room.revealed && allVoted && revealCountdown === null && (
-                      <Button
-                        type='primary'
-                        icon={<EyeOutlined />}
-                        onClick={handleRevealClick}
-                        className='bg-blue-600 hover:bg-blue-700 border-blue-600'
-                        size='large'
+                      <motion.div
+                        initial={{ scale: 0, opacity: 0 }}
+                        animate={{ scale: 1, opacity: 1 }}
+                        transition={{ type: 'spring', stiffness: 300, damping: 20 }}
                       >
-                        Revelar votos
-                      </Button>
+                        <Button
+                          variant='primary'
+                          icon={<Eye className='h-4 w-4' />}
+                          onClick={handleRevealClick}
+                          size='default'
+                          className='shadow-2xl shadow-blue-600/50'
+                        >
+                          Revelar votos
+                        </Button>
+                      </motion.div>
                     )}
 
                     {/* Contador */}
                     {revealCountdown !== null && (
-                      <div className='text-6xl font-bold text-blue-600 animate-pulse'>
+                      <motion.div
+                        key={revealCountdown}
+                        initial={{ scale: 0.5, opacity: 0 }}
+                        animate={{ scale: 1, opacity: 1 }}
+                        exit={{ scale: 1.5, opacity: 0 }}
+                        transition={{ type: 'spring', stiffness: 300, damping: 20 }}
+                        className='text-5xl font-black bg-gradient-to-br from-blue-600 to-blue-700 bg-clip-text text-transparent'
+                        style={{
+                          textShadow: '0 2px 10px rgba(59, 130, 246, 0.3)',
+                        }}
+                      >
                         {revealCountdown}
-                      </div>
+                      </motion.div>
                     )}
 
                     {/* Votos revelados */}
                     {room.revealed && !isModerator && (
-                      <Text className='text-lg font-semibold text-blue-900'>
-                        ✨ Votos revelados
-                      </Text>
+                      <motion.div
+                        initial={{ opacity: 0, scale: 0.8 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        transition={{ duration: 0.4 }}
+                      >
+                        <Text className='text-base font-semibold text-blue-900'>
+                          ✨ Votos revelados
+                        </Text>
+                      </motion.div>
                     )}
 
                     {/* Botón Nueva Ronda */}
                     {isModerator && room.revealed && (
-                      <Button
-                        icon={<ReloadOutlined />}
-                        onClick={onReset}
-                        className='bg-gray-600 hover:bg-gray-700 border-gray-600 text-white'
-                        size='large'
+                      <motion.div
+                        initial={{ scale: 0, opacity: 0 }}
+                        animate={{ scale: 1, opacity: 1 }}
+                        transition={{ type: 'spring', stiffness: 300, damping: 20, delay: 0.3 }}
                       >
-                        Nueva Ronda
-                      </Button>
+                        <Button
+                          icon={<RotateCcw className='h-4 w-4' />}
+                          onClick={onReset}
+                          className='bg-gradient-to-r from-gray-600 to-gray-700 hover:from-gray-700 hover:to-gray-800 text-white shadow-2xl shadow-gray-600/50'
+                          size='default'
+                        >
+                          Nueva Ronda
+                        </Button>
+                      </motion.div>
                     )}
                   </div>
-                </div>
+                </motion.div>
               </div>
             </div>
           </>
@@ -309,24 +384,44 @@ export function PlanningRoom({ room, currentUserId, onVote, onReveal, onReset }:
 
       {/* Footer con cartas - compacto */}
       {currentUser && cardDeck && (
-        <footer className='border-t border-blue-100 bg-white/80 backdrop-blur px-4 py-3 shrink-0'>
-          <div className='flex justify-center gap-2 flex-wrap max-w-4xl mx-auto'>
+        <footer className='border-t border-blue-100 bg-white/90 backdrop-blur-md px-4 py-4 shrink-0 shadow-lg'>
+          <div className='flex justify-center gap-3 flex-wrap max-w-4xl mx-auto'>
             {cardDeck.values.map((value, index) => (
-              <div
+              <motion.div
                 key={index}
+                whileHover={!room.revealed ? { scale: 1.1, y: -8 } : {}}
+                whileTap={!room.revealed ? { scale: 0.95 } : {}}
+                transition={{ type: 'spring', stiffness: 400, damping: 17 }}
                 className={`
-                  w-12 h-16 rounded-lg border-2 cursor-pointer transition-all duration-200 transform hover:scale-105 flex items-center justify-center
-                  ${
-                    selectedCard === value
-                      ? 'border-blue-500 bg-blue-500 text-white shadow-lg scale-105'
-                      : 'border-blue-400 text-blue-500 bg-white hover:bg-blue-50'
-                  }
-                  ${room.revealed ? 'pointer-events-none opacity-60' : ''}
+                  relative w-14 h-20 rounded-xl cursor-pointer flex items-center justify-center
+                  ${room.revealed ? 'pointer-events-none opacity-50' : ''}
                 `}
                 onClick={() => !room.revealed && handleVote(value)}
               >
-                <span className='text-base font-bold'>{value}</span>
-              </div>
+                <div
+                  className={`
+                    w-full h-full rounded-xl border-2 flex items-center justify-center transition-all duration-300
+                    ${
+                      selectedCard === value
+                        ? 'border-blue-500 bg-gradient-to-br from-blue-500 via-blue-600 to-blue-700 text-white shadow-xl shadow-blue-500/40 scale-105'
+                        : 'border-blue-300 bg-gradient-to-br from-white via-blue-50 to-white text-blue-600 hover:border-blue-400 hover:shadow-lg hover:shadow-blue-300/30'
+                    }
+                  `}
+                  style={
+                    selectedCard === value
+                      ? {
+                          boxShadow:
+                            '0 10px 25px -5px rgba(59, 130, 246, 0.5), 0 8px 10px -6px rgba(59, 130, 246, 0.3), inset 0 1px 2px rgba(255, 255, 255, 0.3)',
+                        }
+                      : {
+                          boxShadow:
+                            '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -2px rgba(0, 0, 0, 0.05), inset 0 1px 0 rgba(255, 255, 255, 0.6)',
+                        }
+                  }
+                >
+                  <span className='text-lg font-black drop-shadow-sm'>{value}</span>
+                </div>
+              </motion.div>
             ))}
           </div>
         </footer>
