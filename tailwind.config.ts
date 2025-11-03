@@ -4,6 +4,14 @@ export default {
   content: ['./index.html', './src/**/*.{js,ts,jsx,tsx}'],
   darkMode: 'class',
   theme: {
+    screens: {
+      xs: '375px',
+      sm: '640px',
+      md: '768px',
+      lg: '1300px',
+      xl: '1400px',
+      '2xl': '1536px',
+    },
     extend: {
       colors: {
         'fountain-blue': {

@@ -30,28 +30,49 @@
 }
 
 @layer base {
-  html {
-    background: #f8fafc;
-    color: #1e293b;
-    min-height: 100vh;
-  }
-
+  html,
   body {
-    background: #f8fafc;
-    color: #1e293b;
+    /* 
+      Degradado suave, colores accesibles, contraste suficiente. 
+      Usamos tonos más suaves y opacos de la paleta para que los textos mantengan ratio mínimo AA.
+      Se refuerza el fondo para que prime la legibilidad y no distraiga, 
+      y se mantiene la neutralidad del color base de texto.
+    */
+    background:
+      linear-gradient(
+        135deg,
+        var(--color-purple-20) 0%,
+        var(--color-blue-20) 25%,
+        var(--color-green-20) 50%,
+        var(--color-yellow-10) 75%,
+        var(--color-orange-10) 100%
+      ),
+      #f8fafc;
+    color: #1e293b; /* slate-800: alta accesibilidad sobre el fondo */
     min-height: 100vh;
   }
 
-  /* Tema claro por defecto */
-  .dark {
-    background: #f8fafc;
-    color: #1e293b;
-  }
-
+  /* Tema oscuro: colores oscuros y baja saturación en el degradado, texto claro con suficiente contraste */
+  .dark,
   .dark body {
-    background: #f8fafc;
-    color: #1e293b;
+    background:
+      linear-gradient(
+        135deg,
+        var(--color-purple-50) 0%,
+        var(--color-blue-50) 25%,
+        var(--color-green-50) 50%,
+        var(--color-yellow-20) 75%,
+        var(--color-orange-20) 100%
+      ),
+      #1e293b;
+    color: #f8fafc;
+    min-height: 100vh;
   }
+}
+
+.dark body {
+  background: #f8fafc;
+  color: #1e293b;
 }
 
 @layer components {
@@ -309,4 +330,23 @@
   background: rgba(255, 255, 255, 0.1);
   border-radius: 50%;
   animation: float 4s ease-in-out infinite;
+}
+
+/* Card back pattern for hidden poker cards */
+.card-back-pattern {
+  background-color: #2563eb;
+  background-image:
+    linear-gradient(135deg, rgba(255, 255, 255, 0.18) 25%, transparent 25%),
+    linear-gradient(225deg, rgba(255, 255, 255, 0.18) 25%, transparent 25%),
+    linear-gradient(45deg, rgba(255, 255, 255, 0.18) 25%, transparent 25%),
+    linear-gradient(315deg, rgba(255, 255, 255, 0.18) 25%, transparent 25%);
+  background-position:
+    10px 0,
+    10px 0,
+    0 0,
+    0 0;
+  background-size: 20px 20px;
+  background-repeat: repeat;
+  border-radius: 0.75rem;
+  box-shadow: inset 0 0 10px rgba(15, 23, 42, 0.25);
 }

@@ -17,8 +17,6 @@ class SocketIOService {
   connect(): Promise<void> {
     return new Promise((resolve, reject) => {
       try {
-        console.log('🔌 Conectando a Socket.IO:', this.wsUrl);
-
         // Crear conexión Socket.IO
         this.socket = io(this.wsUrl, {
           transports: ['websocket', 'polling'],
@@ -28,15 +26,13 @@ class SocketIOService {
         });
 
         this.socket.on('connect', () => {
-          console.log('✅ Conectado a Socket.IO');
-          console.log('🔗 Socket ID:', this.socket?.id);
+          console.log('[socket] CONNECT', this.socket?.id);
+
           resolve();
         });
 
         // Escuchar todos los eventos del servidor
         this.socket.onAny((eventName, data) => {
-          console.log('📨 Evento recibido:', eventName, data);
-
           // Convertir a formato WebSocketMessage
           const message: WebSocketMessage = {
             type: eventName as WebSocketMessage['type'],
@@ -47,16 +43,19 @@ class SocketIOService {
         });
 
         this.socket.on('disconnect', (reason) => {
-          console.log('❌ Desconectado de Socket.IO:', reason);
+          console.log('[socket] DISCONNECT', reason, "reason");
+
+          // No-op
         });
 
         this.socket.on('connect_error', (error) => {
-          console.error('❌ Error de conexión Socket.IO:', error);
+          console.error('[socket] CONNECT_ERROR', error);
+
           reject(error);
         });
 
-        this.socket.on('error', (error) => {
-          console.error('❌ Error Socket.IO:', error);
+        this.socket.on('error', () => {
+          // No-op
         });
       } catch (error) {
         reject(error);
@@ -69,57 +68,54 @@ class SocketIOService {
     return () => this.handlers.delete(handler);
   }
 
-  createRoom(roomName: string, userName: string, cardDeck: CardDeck): void {
-    console.log('📤 Creando sala:', { roomName, userName, cardDeck });
+  createRoom(roomName: string, userName: string, cardDeck: CardDeck, ownerEmoji: string): void {
     if (this.socket?.connected) {
       this.socket.emit('room:create', {
         roomName,
         ownerName: userName,
+        ownerEmoji,
         cards: cardDeck.values,
       });
     } else {
-      console.error('❌ Socket.IO no está conectado');
+      // No-op or could throw
     }
   }
 
-  joinRoom(roomId: string, userName: string): void {
-    console.log('📤 Uniéndose a sala:', { roomId, userName });
+  joinRoom(roomId: string, userName: string, emoji: string): void {
     if (this.socket?.connected) {
       this.socket.emit('room:join', {
         roomId,
         userName,
+        emoji,
       });
     } else {
-      console.error('❌ Socket.IO no está conectado');
+      // No-op or could throw
     }
   }
 
   vote(vote: CardValue): void {
-    console.log('🗳️ Enviando voto:', { vote });
     if (this.socket?.connected) {
       this.socket.emit('user:vote', {
         vote,
       });
     } else {
-      console.error('❌ Socket.IO no está conectado');
+      // No-op or could throw
     }
   }
 
   revealVotes(): void {
-    console.log('👁️ Revelando votos');
     if (this.socket?.connected) {
       this.socket.emit('room:reveal');
     } else {
-      console.error('❌ Socket.IO no está conectado');
+      // No-op or could throw
     }
   }
 
   resetVoting(): void {
-    console.log('🔄 Reiniciando votación');
     if (this.socket?.connected) {
       this.socket.emit('room:reset');
     } else {
-      console.error('❌ Socket.IO no está conectado');
+      // No-op or could throw
     }
   }
 
@@ -127,7 +123,6 @@ class SocketIOService {
     if (this.socket) {
       this.socket.disconnect();
       this.socket = null;
-      console.log('👋 Desconectado de Socket.IO');
     }
   }
 
@@ -137,8 +132,16 @@ class SocketIOService {
 }
 
 const getSocketIOURL = () => {
-  // Usar el backend local
-  return 'http://localhost:3001';
+  const envUrl = import.meta.env.VITE_SOCKET_URL || import.meta.env.VITE_API_URL;
+
+  if (!envUrl) {
+    return 'http://localhost:3001';
+  }
+  
+  console.log('envUrl', envUrl);
+
+  // Normaliza ws:// a http:// y wss:// a https:// para que Socket.IO detecte el protocolo adecuado
+  return envUrl.replace(/^ws:\/\//i, 'http://').replace(/^wss:\/\//i, 'https://');
 };
 
 export const websocketService = new SocketIOService(getSocketIOURL());
