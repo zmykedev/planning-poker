@@ -1,7 +1,5 @@
 import { Ripples } from 'ldrs/react';
-import { Typography } from 'antd';
-
-const { Text } = Typography;
+import { Text } from './ui/Typography';
 
 interface ConnectionStatusProps {
   connected: boolean;

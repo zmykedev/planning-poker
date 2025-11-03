@@ -1,14 +1,15 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Card, Space, Typography, Button, Input } from 'antd';
-import { UserOutlined, PlusOutlined } from '@ant-design/icons';
+import { User, Plus } from 'lucide-react';
+import { Card } from '../components/ui/Card';
+import { Button } from '../components/ui/Button';
+import { Input } from '../components/ui/Input';
+import { Title, Text } from '../components/ui/Typography';
 import { ConnectionStatus } from '../components/ConnectionStatus';
 import type { CardDeck, Room } from '../types';
 import { EmojiPicker } from '../components/EmojiPicker';
 import { getRandomEmoji } from '../utils/emoji.ts';
 import { CARD_DECKS } from '../types';
-
-const { Title, Text } = Typography;
 
 interface HomePageProps {
   room: Room | null;
@@ -46,9 +47,9 @@ export function HomePage({
   return (
     <div className='min-h-screen flex items-center justify-center'>
       <div className='w-full max-w-md p-6'>
-        <Card className='shadow-lg border-0 bg-white/90 backdrop-blur-sm'>
+        <Card className='p-6'>
           <div className='text-center mb-6'>
-            <Title level={2} className='mb-2 text-gray-800'>
+            <Title className='mb-2 text-gray-800'>
               🃏 Planning Poker
             </Title>
             <div className='flex flex-col items-center gap-3 mb-2'>
@@ -56,18 +57,19 @@ export function HomePage({
             </div>
           </div>
 
-          <Space direction='vertical' className='w-full' size='large'>
+          <div className='flex flex-col gap-6'>
             {/* Información del Usuario */}
             <div>
-              <Text strong className='block mb-2'>
-                <UserOutlined /> Ingresa tu nombre o alias
-              </Text>
+              <div className='flex items-center gap-2 mb-2'>
+                <User className='h-4 w-4' />
+                <Text className='font-semibold'>Ingresa tu nombre o alias</Text>
+              </div>
               <Input
                 placeholder='John Doe'
                 value={newPlayerName}
                 onChange={(e) => setNewPlayerName(e.target.value)}
-                onPressEnter={() => {
-                  if (connected && newPlayerName.trim() && roomName.trim()) {
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' && connected && newPlayerName.trim() && roomName.trim()) {
                     handleCreateRoom(roomName, newPlayerName, selectedDeck);
                   }
                 }}
@@ -81,15 +83,16 @@ export function HomePage({
 
             {/* Crear Nueva Sala */}
             <div>
-              <Text strong className='block mb-2'>
-                <PlusOutlined /> Crear Nueva Sala
-              </Text>
+              <div className='flex items-center gap-2 mb-2'>
+                <Plus className='h-4 w-4' />
+                <Text className='font-semibold'>Crear Nueva Sala</Text>
+              </div>
               <Input
                 placeholder='Planning Experiencia Digital'
                 value={roomName}
                 onChange={(e) => setRoomName(e.target.value)}
-                onPressEnter={() => {
-                  if (connected && newPlayerName.trim() && roomName.trim()) {
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' && connected && newPlayerName.trim() && roomName.trim()) {
                     handleCreateRoom(roomName, newPlayerName, selectedDeck);
                   }
                 }}
@@ -97,7 +100,7 @@ export function HomePage({
               />
 
               <Button
-                type='primary'
+                variant='primary'
                 size='large'
                 onClick={() => handleCreateRoom(roomName, newPlayerName, selectedDeck)}
                 disabled={!connected || !newPlayerName.trim() || !roomName.trim()}
@@ -106,7 +109,7 @@ export function HomePage({
                 Crear Sala
               </Button>
             </div>
-          </Space>
+          </div>
         </Card>
       </div>
     </div>
