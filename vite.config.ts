@@ -16,7 +16,6 @@ export default defineConfig({
         manualChunks: {
           'react-vendor': ['react', 'react-dom', 'react-router-dom'],
           'ui-vendor': ['framer-motion'],
-          'antd-vendor': ['antd'],
           'utils-vendor': ['zustand'],
         },
         chunkFileNames: 'assets/[name]-[hash].js',
@@ -31,7 +30,7 @@ export default defineConfig({
     host: true,
   },
   optimizeDeps: {
-    include: ['react', 'react-dom', 'react-router-dom', 'antd', 'framer-motion', 'zustand'],
+    include: ['react', 'react-dom', 'react-router-dom', 'framer-motion', 'zustand'],
   },
   resolve: {
     alias: {
