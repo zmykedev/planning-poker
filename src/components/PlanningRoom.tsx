@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { Link, Eye, RotateCcw } from 'lucide-react';
+import { Link, Eye, RotateCcw, EyeOff } from 'lucide-react';
 import { Button } from './ui/Button';
 import { Text } from './ui/Typography';
 import { useToast } from '../contexts/ToastContext';
@@ -12,16 +12,26 @@ interface Props {
   onVote: (vote: CardValue) => void;
   onReveal: () => void;
   onReset: () => void;
+  onToggleSpectator: (spectator: boolean) => void;
 }
 
-export function PlanningRoom({ room, currentUserId, onVote, onReveal, onReset }: Props) {
+export function PlanningRoom({
+  room,
+  currentUserId,
+  onVote,
+  onReveal,
+  onReset,
+  onToggleSpectator,
+}: Props) {
   const [selectedCard, setSelectedCard] = useState<CardValue | null>(null);
   const [revealCountdown, setRevealCountdown] = useState<number | null>(null);
   const toast = useToast();
 
   const currentUser = room.users.find((u) => u.id === currentUserId);
-  const allVoted = room.users.every((u) => u.vote !== null);
+  const isSpectator = currentUser?.spectator || false;
+  const allVoted = room.users.filter((u) => !u.spectator).every((u) => u.vote !== null);
   const isModerator = currentUser?.id === room.ownerId;
+  const canBeSpectator = !isModerator;
 
   // Usar las cartas de la sala directamente
   const cardDeck = {
@@ -82,6 +92,7 @@ export function PlanningRoom({ room, currentUserId, onVote, onReveal, onReset }:
 
     const showHiddenPattern = user.vote !== null && !room.revealed;
     const isCurrent = user.id === currentUserId;
+    const isUserSpectator = user.spectator;
 
     return (
       <div key={user.id} className='flex flex-col items-center gap-2'>
@@ -96,19 +107,25 @@ export function PlanningRoom({ room, currentUserId, onVote, onReveal, onReset }:
           {/* Cara frontal - Carta oculta */}
           <div
             className={`absolute inset-0 flex items-center justify-center font-bold rounded-2xl border-2 ${
-              showHiddenPattern
-                ? 'card-back-pattern border-blue-500'
-                : 'bg-gradient-to-br from-white via-blue-50 to-white border-slate-200'
+              isUserSpectator
+                ? 'bg-gradient-to-br from-gray-100 via-gray-200 to-gray-100 border-gray-300'
+                : showHiddenPattern
+                  ? 'card-back-pattern border-blue-500'
+                  : 'bg-gradient-to-br from-white via-blue-50 to-white border-slate-200'
             }`}
             style={{
               backfaceVisibility: 'hidden',
               WebkitBackfaceVisibility: 'hidden',
-              boxShadow: showHiddenPattern
-                ? '0 4px 14px 0 rgba(59, 130, 246, 0.3), 0 0 0 1px rgba(59, 130, 246, 0.1)'
-                : '0 4px 14px 0 rgba(0, 0, 0, 0.1), 0 0 0 1px rgba(148, 163, 184, 0.1)',
+              boxShadow: isUserSpectator
+                ? '0 4px 14px 0 rgba(0, 0, 0, 0.1), 0 0 0 1px rgba(148, 163, 184, 0.1)'
+                : showHiddenPattern
+                  ? '0 4px 14px 0 rgba(59, 130, 246, 0.3), 0 0 0 1px rgba(59, 130, 246, 0.1)'
+                  : '0 4px 14px 0 rgba(0, 0, 0, 0.1), 0 0 0 1px rgba(148, 163, 184, 0.1)',
             }}
           >
-            {showHiddenPattern ? (
+            {isUserSpectator ? (
+              <div className='text-2xl text-gray-500'>👁️</div>
+            ) : showHiddenPattern ? (
               <span className='sr-only'>Carta cubierta</span>
             ) : (
               <div className='text-2xl text-slate-400'>?</div>
@@ -117,16 +134,21 @@ export function PlanningRoom({ room, currentUserId, onVote, onReveal, onReset }:
 
           {/* Cara trasera - Carta revelada */}
           <div
-            className='absolute inset-0 flex items-center justify-center text-blue-600 font-black text-2xl rounded-2xl border-2 border-blue-400 bg-gradient-to-br from-white via-blue-50 to-white'
+            className={`absolute inset-0 flex items-center justify-center font-black text-2xl rounded-2xl border-2 ${
+              isUserSpectator
+                ? 'text-gray-500 border-gray-400 bg-gradient-to-br from-gray-100 via-gray-200 to-gray-100'
+                : 'text-blue-600 border-blue-400 bg-gradient-to-br from-white via-blue-50 to-white'
+            }`}
             style={{
               backfaceVisibility: 'hidden',
               WebkitBackfaceVisibility: 'hidden',
               transform: 'rotateY(180deg)',
-              boxShadow:
-                '0 8px 20px 0 rgba(59, 130, 246, 0.4), 0 0 0 1px rgba(59, 130, 246, 0.2), inset 0 1px 2px 0 rgba(255, 255, 255, 0.8)',
+              boxShadow: isUserSpectator
+                ? '0 4px 14px 0 rgba(0, 0, 0, 0.1), 0 0 0 1px rgba(148, 163, 184, 0.1)'
+                : '0 8px 20px 0 rgba(59, 130, 246, 0.4), 0 0 0 1px rgba(59, 130, 246, 0.2), inset 0 1px 2px 0 rgba(255, 255, 255, 0.8)',
             }}
           >
-            <div className='drop-shadow-sm'>{user.vote ?? '?'}</div>
+            <div className='drop-shadow-sm'>{isUserSpectator ? '👁️' : (user.vote ?? '?')}</div>
           </div>
         </div>
 
@@ -141,6 +163,7 @@ export function PlanningRoom({ room, currentUserId, onVote, onReveal, onReset }:
           <span className='max-w-[70px] truncate'>
             {user.name || `User ${user.id.slice(0, 4)}`}
           </span>
+          {isUserSpectator && <span className='text-xs'>👁️</span>}
         </div>
       </div>
     );
@@ -163,7 +186,12 @@ export function PlanningRoom({ room, currentUserId, onVote, onReveal, onReset }:
     navigator.clipboard
       .writeText(roomLink)
       .then(() => {
-        toast.success('Link copiado al portapapeles');
+        toast.toast({
+          title: '¡Link copiado!',
+          description: 'Compártelo con tu equipo para que se unan',
+          variant: 'success',
+          duration: 3500,
+        });
       })
       .catch(() => {
         toast.error('Error al copiar el link');
@@ -225,16 +253,33 @@ export function PlanningRoom({ room, currentUserId, onVote, onReveal, onReset }:
             🂡
           </div>
           <span className='text-base font-semibold'>{room.name}</span>
+          {isSpectator && (
+            <span className='text-xs px-2 py-1 bg-gray-200 text-gray-700 rounded-full font-medium'>
+              👁️ Espectador
+            </span>
+          )}
         </div>
 
-        <Button
-          icon={<Link className='h-4 w-4' />}
-          size='small'
-          variant='secondary'
-          onClick={handleCopyRoomLink}
-        >
-          Invitar
-        </Button>
+        <div className='flex items-center gap-2'>
+          {canBeSpectator && (
+            <Button
+              icon={isSpectator ? <Eye className='h-4 w-4' /> : <EyeOff className='h-4 w-4' />}
+              size='small'
+              variant={isSpectator ? 'primary' : 'secondary'}
+              onClick={() => onToggleSpectator(!isSpectator)}
+            >
+              {isSpectator ? 'Participar' : 'Espectador'}
+            </Button>
+          )}
+          <Button
+            icon={<Link className='h-4 w-4' />}
+            size='small'
+            variant='secondary'
+            onClick={handleCopyRoomLink}
+          >
+            Invitar
+          </Button>
+        </div>
       </header>
 
       {/* Main - Mesa con jugadores alrededor */}
@@ -312,8 +357,21 @@ export function PlanningRoom({ room, currentUserId, onVote, onReveal, onReset }:
                     {isModerator && !room.revealed && allVoted && revealCountdown === null && (
                       <motion.div
                         initial={{ scale: 0, opacity: 0 }}
-                        animate={{ scale: 1, opacity: 1 }}
-                        transition={{ type: 'spring', stiffness: 300, damping: 20 }}
+                        animate={{
+                          scale: 1,
+                          opacity: 1,
+                          x: [0, -8, 8, -8, 8, -4, 4, 0],
+                        }}
+                        transition={{
+                          scale: { type: 'spring', stiffness: 300, damping: 20 },
+                          opacity: { duration: 0.3 },
+                          x: {
+                            duration: 0.6,
+                            repeat: Infinity,
+                            repeatDelay: 1.5,
+                            ease: 'easeInOut',
+                          },
+                        }}
                       >
                         <Button
                           variant='primary'
@@ -383,7 +441,7 @@ export function PlanningRoom({ room, currentUserId, onVote, onReveal, onReset }:
       </main>
 
       {/* Footer con cartas - compacto */}
-      {currentUser && cardDeck && (
+      {currentUser && cardDeck && !isSpectator && (
         <footer className='border-t border-blue-100 bg-white/90 backdrop-blur-md px-4 py-4 shrink-0 shadow-lg'>
           <div className='flex justify-center gap-3 flex-wrap max-w-4xl mx-auto'>
             {cardDeck.values.map((value, index) => (

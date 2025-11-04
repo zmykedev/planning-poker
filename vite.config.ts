@@ -11,12 +11,13 @@ export default defineConfig({
     assetsDir: 'assets',
     sourcemap: false,
     minify: 'esbuild',
+    cssMinify: 'lightningcss',
     rollupOptions: {
       output: {
         manualChunks: {
           'react-vendor': ['react', 'react-dom', 'react-router-dom'],
           'ui-vendor': ['framer-motion'],
-          'utils-vendor': ['zustand'],
+          'utils-vendor': ['zustand', 'socket.io-client'],
         },
         chunkFileNames: 'assets/[name]-[hash].js',
         entryFileNames: 'assets/[name]-[hash].js',
@@ -24,6 +25,7 @@ export default defineConfig({
       },
     },
     chunkSizeWarningLimit: 1000,
+    target: 'esnext',
   },
   server: {
     port: 5173,

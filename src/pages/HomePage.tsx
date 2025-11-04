@@ -6,6 +6,7 @@ import { Button } from '../components/ui/Button';
 import { Input } from '../components/ui/Input';
 import { Title, Text } from '../components/ui/Typography';
 import { ConnectionStatus } from '../components/ConnectionStatus';
+import { FloatingCards } from '../components/FloatingCards';
 import type { CardDeck, Room } from '../types';
 import { EmojiPicker } from '../components/EmojiPicker';
 import { getRandomEmoji } from '../utils/emoji.ts';
@@ -42,19 +43,34 @@ export function HomePage({
       navigate(`/room/${room.id}`);
     }
   }, [room, currentUserId, currentUserName, navigate]);
-  console.log('connected', connected);
 
   return (
-    <div className='min-h-screen flex items-center justify-center'>
-      <div className='w-full max-w-md p-6'>
+    <main
+      className='min-h-screen flex items-center justify-center relative overflow-hidden'
+      role='main'
+      aria-label='Página de inicio de FocusPoker'
+      style={{
+        background: `linear-gradient(
+          135deg,
+          var(--color-purple-20) 0%,
+          var(--color-blue-20) 25%,
+          var(--color-green-20) 50%,
+          var(--color-yellow-10) 75%,
+          var(--color-orange-10) 100%
+        ), #f8fafc`,
+      }}
+    >
+      {/* Cartas flotantes de fondo */}
+      <FloatingCards />
+
+      <div className='w-full max-w-md p-6 relative z-10'>
         <Card className='p-6'>
-          <div className='text-center mb-6'>
-            <Title className='mb-2 text-gray-800'>
-              🃏 Planning Poker
-            </Title>
-            <div className='flex flex-col items-center gap-3 mb-2'>
-              <ConnectionStatus connected={connected} />
+          <div className='flex flex-col items-center text-center mb-6'>
+            <div className='flex items-center gap-3 mb-2'>
+              <img src='/favicon.svg' alt='FocusPoker' className='w-10 h-10' />
+              <Title className='text-gray-800'>FocusPoker</Title>
             </div>
+            <ConnectionStatus connected={connected} />
           </div>
 
           <div className='flex flex-col gap-6'>
@@ -76,7 +92,7 @@ export function HomePage({
                 className='mb-3'
               />
               {/* EmojiPicker posicionado debajo del nombre */}
-              <div className="flex justify-center mt-2">
+              <div className='flex justify-center mt-2'>
                 <EmojiPicker value={selectedEmoji} onSelect={setSelectedEmoji} />
               </div>
             </div>
@@ -112,6 +128,6 @@ export function HomePage({
           </div>
         </Card>
       </div>
-    </div>
+    </main>
   );
 }

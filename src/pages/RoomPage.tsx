@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { User, Users } from 'lucide-react';
 import { Card } from '../components/ui/Card';
@@ -10,6 +10,7 @@ import { ConnectionStatus } from '../components/ConnectionStatus';
 import type { Room, CardValue } from '../types';
 import { EmojiPicker } from '../components/EmojiPicker';
 import { getRandomEmoji } from '../utils/emoji.ts';
+import { apiService } from '../services/apiService';
 
 interface RoomPageProps {
   room: Room | null;
@@ -20,6 +21,7 @@ interface RoomPageProps {
   vote: (vote: CardValue) => void;
   revealVotes: () => void;
   resetVoting: () => void;
+  toggleSpectator: (spectator: boolean) => void;
 }
 
 export function RoomPage({
@@ -30,11 +32,30 @@ export function RoomPage({
   vote,
   revealVotes,
   resetVoting,
+  toggleSpectator,
 }: RoomPageProps) {
   const { roomId } = useParams<{ roomId: string }>();
   const [newPlayerName, setNewPlayerName] = useState('');
   const [selectedEmoji, setSelectedEmoji] = useState(getRandomEmoji());
+  const [roomName, setRoomName] = useState<string | null>(null);
+  const [loadingRoom, setLoadingRoom] = useState(true);
   const navigate = useNavigate();
+
+  useEffect(() => {
+    if (!roomId) return;
+
+    const fetchRoomInfo = async () => {
+      setLoadingRoom(true);
+      const roomData = await apiService.getRoomById(roomId);
+      if (roomData) {
+        setRoomName(roomData.name);
+      }
+      setLoadingRoom(false);
+    };
+
+    fetchRoomInfo();
+  }, [roomId]);
+
   const handleJoin = () => {
     if (!roomId) return;
     if (!connected || !newPlayerName.trim()) return;
@@ -51,6 +72,7 @@ export function RoomPage({
         onVote={vote}
         onReveal={revealVotes}
         onReset={resetVoting}
+        onToggleSpectator={toggleSpectator}
       />
     );
   }
@@ -72,18 +94,21 @@ export function RoomPage({
     >
       <div className='w-full max-w-md p-6'>
         <Card className='p-6'>
-          <div className='text-center mb-6'>
-            <Title className='mb-2 text-gray-800'>🃏 Unirse a Sala</Title>
-            <div className='flex items-center justify-center mb-2'>
-              <ConnectionStatus connected={connected} />
+          <div className='flex flex-col items-center text-center mb-6'>
+            <div className='flex items-center gap-3 mb-2'>
+              <img src='/favicon.svg' alt='FocusPoker' className='w-10 h-10' />
+              <Title className='text-gray-800'>Unirse a Sala</Title>
             </div>
+            <ConnectionStatus connected={connected} />
           </div>
 
           <div className='flex flex-col gap-6'>
             <div>
               <div className='flex items-center gap-2 mb-2'>
                 <Users className='h-4 w-4' />
-                <Text className='font-semibold'>Sala: {roomId}</Text>
+                <Text className='font-semibold'>
+                  {loadingRoom ? 'Cargando...' : roomName ? `Sala: ${roomName}` : `Sala: ${roomId}`}
+                </Text>
               </div>
               <Text variant='secondary' className='block'>
                 Ingresa tu nombre para unirte a la sala

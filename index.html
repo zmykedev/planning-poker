@@ -2,36 +2,71 @@
 <html lang="es">
   <head>
     <meta charset="UTF-8" />
-    <link rel="icon" type="image/svg+xml" href="/vite.svg" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta name="theme-color" content="#0891b2" />
-    <meta name="description" content="Planning Poker - Una herramienta para la estimación ágil." />
-    <meta name="keywords" content="planning poker, agile, estimation, scrum" />
-    <meta name="author" content="Tu Nombre" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="alternate icon" href="/favicon.ico" />
+    <link rel="apple-touch-icon" sizes="180x180" href="/focuspoker-icon.png" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <meta name="theme-color" content="#3b82f6" />
+    <meta
+      name="description"
+      content="FocusPoker - Herramienta colaborativa de Planning Poker para estimación ágil en tiempo real. Gratis, rápida y fácil de usar."
+    />
+    <meta
+      name="keywords"
+      content="focus poker, planning poker, agile, estimation, scrum, fibonacci, desarrollo ágil, sprint planning, story points"
+    />
+    <meta name="author" content="FocusPoker Team" />
+    <meta name="robots" content="index, follow" />
+    <link rel="canonical" href="https://focuspoker.com/" />
 
     <!-- Open Graph / Facebook -->
     <meta property="og:type" content="website" />
-    <meta property="og:url" content="https://tu-sitio-de-planning-poker.com/" />
-    <meta property="og:title" content="Planning Poker" />
-    <meta property="og:description" content="Una herramienta para la estimación ágil." />
-    <meta property="og:image" content="/planning-poker-image.png" />
+    <meta property="og:url" content="https://focuspoker.com/" />
+    <meta property="og:title" content="FocusPoker - Planning Poker Colaborativo" />
+    <meta
+      property="og:description"
+      content="Herramienta colaborativa de Planning Poker para estimación ágil en tiempo real."
+    />
+    <meta property="og:image" content="/focuspoker-icon.png" />
 
     <!-- Twitter -->
     <meta property="twitter:card" content="summary_large_image" />
-    <meta property="twitter:url" content="https://tu-sitio-de-planning-poker.com/" />
-    <meta property="twitter:title" content="Planning Poker" />
-    <meta property="twitter:description" content="Una herramienta para la estimación ágil." />
-    <meta property="twitter:image" content="/planning-poker-image.png" />
+    <meta property="twitter:url" content="https://focuspoker.com/" />
+    <meta property="twitter:title" content="FocusPoker - Planning Poker Colaborativo" />
+    <meta
+      property="twitter:description"
+      content="Herramienta colaborativa de Planning Poker para estimación ágil en tiempo real."
+    />
+    <meta property="twitter:image" content="/focuspoker-icon.png" />
 
     <!-- Performance optimizations -->
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link rel="dns-prefetch" href="https://fonts.googleapis.com" />
 
-    <title>Planning Poker</title>
+    <!-- PWA Manifest -->
+    <link rel="manifest" href="/manifest.json" />
+
+    <title>FocusPoker - Planning Poker Colaborativo | Estimación Ágil en Tiempo Real</title>
     <base href="/" />
+
+    <!-- Inline critical CSS for faster FCP -->
+    <style>
+      body {
+        margin: 0;
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu',
+          'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue', sans-serif;
+        -webkit-font-smoothing: antialiased;
+        -moz-osx-font-smoothing: grayscale;
+      }
+      #root {
+        min-height: 100vh;
+      }
+    </style>
   </head>
   <body>
-    <div id="root" class="min-h-screen"></div>
+    <noscript>Necesitas habilitar JavaScript para usar FocusPoker.</noscript>
+    <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>

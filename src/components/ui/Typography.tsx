@@ -15,9 +15,7 @@ const Text = React.forwardRef<HTMLSpanElement, TextProps>(
       success: 'text-green-600',
     };
 
-    return (
-      <span ref={ref} className={cn(variantStyles[variant], className)} {...props} />
-    );
+    return <span ref={ref} className={cn(variantStyles[variant], className)} {...props} />;
   },
 );
 Text.displayName = 'Text';
@@ -45,4 +43,3 @@ const Subtitle = React.forwardRef<HTMLHeadingElement, React.HTMLAttributes<HTMLH
 Subtitle.displayName = 'Subtitle';
 
 export { Text, Title, Subtitle };
-

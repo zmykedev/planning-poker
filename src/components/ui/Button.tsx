@@ -9,8 +9,7 @@ const buttonVariants = cva(
   {
     variants: {
       variant: {
-        primary:
-          'bg-blue-600 text-white shadow hover:bg-blue-700 active:bg-blue-800',
+        primary: 'bg-blue-600 text-white shadow hover:bg-blue-700 active:bg-blue-800',
         secondary:
           'bg-white text-slate-700 border border-blue-100 shadow-sm hover:bg-blue-50 active:bg-blue-100',
         outline:
@@ -18,8 +17,7 @@ const buttonVariants = cva(
         ghost: 'text-blue-600 hover:bg-blue-50 active:bg-blue-100',
         link: 'text-blue-600 underline-offset-4 hover:underline',
         danger: 'bg-red-600 text-white shadow hover:bg-red-700 active:bg-red-800',
-        success:
-          'bg-green-600 text-white shadow hover:bg-green-700 active:bg-green-800',
+        success: 'bg-green-600 text-white shadow hover:bg-green-700 active:bg-green-800',
       },
       size: {
         small: 'h-8 px-3 text-xs',
@@ -63,4 +61,3 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
 Button.displayName = 'Button';
 
 export { Button, buttonVariants };
-
