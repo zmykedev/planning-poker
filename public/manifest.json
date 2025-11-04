@@ -1,0 +1,27 @@
+{
+  "name": "FocusPoker - Planning Poker Colaborativo",
+  "short_name": "FocusPoker",
+  "description": "Herramienta colaborativa de Planning Poker para estimación ágil en tiempo real",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#3b82f6",
+  "orientation": "any",
+  "icons": [
+    {
+      "src": "/focuspoker-icon.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/focuspoker-icon.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "categories": ["productivity", "business"],
+  "lang": "es"
+}
+

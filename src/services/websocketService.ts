@@ -42,9 +42,7 @@ class SocketIOService {
           this.handlers.forEach((handler) => handler(message));
         });
 
-        this.socket.on('disconnect', (reason) => {
-          console.log('[socket] DISCONNECT', reason, "reason");
-
+        this.socket.on('disconnect', () => {
           // No-op
         });
 
@@ -119,6 +117,16 @@ class SocketIOService {
     }
   }
 
+  toggleSpectator(spectator: boolean): void {
+    if (this.socket?.connected) {
+      this.socket.emit('user:spectate', {
+        spectator,
+      });
+    } else {
+      // No-op or could throw
+    }
+  }
+
   disconnect(): void {
     if (this.socket) {
       this.socket.disconnect();
@@ -132,13 +140,11 @@ class SocketIOService {
 }
 
 const getSocketIOURL = () => {
-  const envUrl = import.meta.env.VITE_SOCKET_URL || import.meta.env.VITE_API_URL;
+  const envUrl = import.meta.env.VITE_SOCKET_URL;
 
   if (!envUrl) {
     return 'http://localhost:3001';
   }
-  
-  console.log('envUrl', envUrl);
 
   // Normaliza ws:// a http:// y wss:// a https:// para que Socket.IO detecte el protocolo adecuado
   return envUrl.replace(/^ws:\/\//i, 'http://').replace(/^wss:\/\//i, 'https://');

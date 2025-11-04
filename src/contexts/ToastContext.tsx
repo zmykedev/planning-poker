@@ -31,19 +31,16 @@ const ToastContext = createContext<ToastContextType | undefined>(undefined);
 export function ToastProvider({ children }: { children: React.ReactNode }) {
   const [toasts, setToasts] = useState<ToastType[]>([]);
 
-  const addToast = useCallback(
-    (toast: Omit<ToastType, 'id'>) => {
-      const id = Math.random().toString(36).substr(2, 9);
-      const newToast = { ...toast, id };
-      setToasts((prev) => [...prev, newToast]);
+  const addToast = useCallback((toast: Omit<ToastType, 'id'>) => {
+    const id = Math.random().toString(36).substr(2, 9);
+    const newToast = { ...toast, id };
+    setToasts((prev) => [...prev, newToast]);
 
-      // Auto-dismiss after duration
-      setTimeout(() => {
-        setToasts((prev) => prev.filter((t) => t.id !== id));
-      }, toast.duration || 3000);
-    },
-    [],
-  );
+    // Auto-dismiss after duration
+    setTimeout(() => {
+      setToasts((prev) => prev.filter((t) => t.id !== id));
+    }, toast.duration || 3000);
+  }, []);
 
   const removeToast = useCallback((id: string) => {
     setToasts((prev) => prev.filter((t) => t.id !== id));
@@ -80,11 +77,23 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
   const getIcon = (variant?: ToastVariant) => {
     switch (variant) {
       case 'success':
-        return <CheckCircle2 className='h-5 w-5 text-green-600' />;
+        return (
+          <div className='flex h-8 w-8 items-center justify-center rounded-full bg-green-500'>
+            <CheckCircle2 className='h-5 w-5 text-white' />
+          </div>
+        );
       case 'error':
-        return <AlertCircle className='h-5 w-5 text-red-600' />;
+        return (
+          <div className='flex h-8 w-8 items-center justify-center rounded-full bg-red-500'>
+            <AlertCircle className='h-5 w-5 text-white' />
+          </div>
+        );
       case 'info':
-        return <Info className='h-5 w-5 text-blue-600' />;
+        return (
+          <div className='flex h-8 w-8 items-center justify-center rounded-full bg-blue-500'>
+            <Info className='h-5 w-5 text-white' />
+          </div>
+        );
       default:
         return null;
     }
@@ -92,9 +101,9 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
 
   const variantStyles = {
     default: 'bg-white border-slate-200',
-    success: 'bg-green-50 border-green-200 text-green-900',
-    error: 'bg-red-50 border-red-200 text-red-900',
-    info: 'bg-blue-50 border-blue-200 text-blue-900',
+    success: 'bg-white border-green-300 shadow-green-100',
+    error: 'bg-white border-red-300 shadow-red-100',
+    info: 'bg-white border-blue-300 shadow-blue-100',
   };
 
   return (
@@ -112,24 +121,42 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
               asChild
             >
               <motion.div
-                initial={{ opacity: 0, y: 50, scale: 0.3 }}
-                animate={{ opacity: 1, y: 0, scale: 1 }}
-                exit={{ opacity: 0, scale: 0.5, transition: { duration: 0.2 } }}
+                initial={{ opacity: 0, x: 100, scale: 0.8 }}
+                animate={{
+                  opacity: 1,
+                  x: 0,
+                  scale: 1,
+                  transition: {
+                    type: 'spring',
+                    stiffness: 300,
+                    damping: 20,
+                  },
+                }}
+                exit={{
+                  opacity: 0,
+                  x: 100,
+                  scale: 0.8,
+                  transition: { duration: 0.2 },
+                }}
                 className={cn(
-                  'pointer-events-auto relative flex w-full items-center justify-between space-x-4 overflow-hidden rounded-lg border p-4 pr-10 shadow-lg',
+                  'pointer-events-auto relative flex w-full items-center space-x-4 overflow-hidden rounded-xl border-2 p-4 pr-12 shadow-2xl backdrop-blur-sm',
                   variantStyles[toast.variant || 'default'],
                 )}
               >
-                <div className='flex items-center gap-3 flex-1'>
+                <div className='flex items-center gap-4 flex-1'>
                   {getIcon(toast.variant)}
-                  <div className='grid gap-1 flex-1'>
-                    {toast.title && <div className='text-sm font-semibold'>{toast.title}</div>}
-                    {toast.description && <div className='text-sm opacity-90'>{toast.description}</div>}
+                  <div className='flex flex-col gap-0.5 flex-1'>
+                    {toast.title && (
+                      <div className='text-base font-bold text-gray-900 leading-tight'>
+                        {toast.title}
+                      </div>
+                    )}
+                    {toast.description && (
+                      <div className='text-sm text-gray-600 leading-snug'>{toast.description}</div>
+                    )}
                   </div>
                 </div>
-                <ToastPrimitives.Close
-                  className='absolute right-2 top-2 rounded-md p-1 text-slate-500 opacity-70 transition-opacity hover:opacity-100'
-                >
+                <ToastPrimitives.Close className='absolute right-3 top-3 rounded-lg p-1.5 text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-all duration-200'>
                   <X className='h-4 w-4' />
                 </ToastPrimitives.Close>
               </motion.div>
@@ -149,4 +176,3 @@ export function useToast() {
   }
   return context;
 }
-

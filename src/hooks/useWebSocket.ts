@@ -117,5 +117,6 @@ export function useWebSocket() {
     vote: websocketService.vote.bind(websocketService),
     revealVotes: websocketService.revealVotes.bind(websocketService),
     resetVoting: websocketService.resetVoting.bind(websocketService),
+    toggleSpectator: websocketService.toggleSpectator.bind(websocketService),
   };
 }
