@@ -7,7 +7,7 @@ interface FloatingCard {
   x: number;
   y: number;
   duration: number;
-  delay: number;
+  delay?: number;
   rotation: number;
   scale: number;
 }
@@ -16,7 +16,7 @@ const cardValues = ['1', '2', '3', '5', '8', '13', '21', '34'];
 
 // Optimización: Generar cartas solo una vez
 const generateCards = (): FloatingCard[] => {
-  return Array.from({ length: 30 }, (_, i) => {
+  return Array.from({ length: 80 }, (_, i) => {
     // Crear más concentración en los laterales
     const rand = Math.random();
     let x: number;
@@ -38,7 +38,6 @@ const generateCards = (): FloatingCard[] => {
       x,
       y: -20 - Math.random() * 100,
       duration: 20 + Math.random() * 30,
-      delay: Math.random() * 15, // Delay para distribuir carga
       rotation: Math.random() * 720 - 360,
       scale: 0.5 + Math.random() * 0.6,
     };
